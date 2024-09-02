@@ -3,7 +3,6 @@ import { useFetcher } from "@remix-run/react";
 
 type Message = {
   content: string;
-  isComplete: boolean;
 };
 
 export default function ChatScreen() {
@@ -18,30 +17,14 @@ export default function ChatScreen() {
 
     eventSource.onmessage = (event) => {
       try {
-        console.log("received event", event);
+        console.log("Received event:", event.data);
         const data = JSON.parse(event.data);
-        if (data.type === "message") {
-          console.log("hello world", data);
-          setMessages((prev) => {
-            // find
-            const lastMessage = prev[prev.length - 1];
-            console.log("i'm updating optimistically. ", data);
-            if (lastMessage && !lastMessage.isComplete) {
-              const updatedMessages = [...prev.slice(0, -1)];
-              updatedMessages.push({
-                content: lastMessage.content + data.message,
-                isComplete: data.isComplete,
-              });
-              return updatedMessages;
-            } else {
-              return [
-                ...prev,
-                { content: data.message, isComplete: data.isComplete },
-              ];
-            }
-          });
-        } else if (data.type === "action") {
-          setActions((prev) => [...prev, data.actionType]);
+        if (data.type === "action") {
+          console.log("Received action:", data.data.actionType);
+          setActions((prev) => [...prev, data.data.actionType]);
+        } else if (data.type === "message") {
+          console.log("Received message:", data.data.message);
+          setMessages((prev) => [...prev, { content: data.data.message }]);
         }
       } catch (error) {
         console.error("Error parsing SSE message:", error);
@@ -79,30 +62,41 @@ export default function ChatScreen() {
   );
 
   return (
-    <div>
-      <div>
-        <h2>Messages:</h2>
-        {messages.map((msg, index) => (
-          <div key={index}>
-            {msg.content}
-            {!msg.isComplete && "..."}
-          </div>
-        ))}
+    <div className="p-4">
+      <div className="mb-4">
+        <h2 className="text-xl font-bold mb-2">Messages:</h2>
+        <ul className="list-disc pl-5">
+          {messages.map((msg, index) => (
+            <li key={index} className="mb-1">
+              {msg.content}
+            </li>
+          ))}
+        </ul>
       </div>
-      <div>
-        <h2>Actions:</h2>
-        {actions.map((action, index) => (
-          <div key={index}>{action}</div>
-        ))}
+      <div className="mb-4">
+        <h2 className="text-xl font-bold mb-2">Actions:</h2>
+        <ul className="list-disc pl-5">
+          {actions.map((action, index) => (
+            <li key={index} className="mb-1">
+              {action}
+            </li>
+          ))}
+        </ul>
       </div>
-      <button
-        onClick={() =>
-          sendMessage("Hello, this is a long message that will be streamed!")
-        }
-      >
-        Send Message
-      </button>
-      <button onClick={() => sendAction("wave")}>Send Action</button>
+      <div className="flex space-x-2">
+        <button
+          onClick={() => sendMessage("Hello, this is a test message!")}
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Send Message
+        </button>
+        <button
+          onClick={() => sendAction("test_action")}
+          className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Send Action
+        </button>
+      </div>
     </div>
   );
 }
