@@ -1,6 +1,6 @@
 import { EventEmitter } from "events";
 import { getUserId, getUserIdCookie } from "~/utils/userStore.server";
-import { portkeyClient } from "~/utils/portkeyClient.server";
+import { portkey } from "~/utils/portkeyClient.server";
 
 type ChatEvent = {
   type: "message" | "action";
@@ -60,9 +60,10 @@ class EventListenerController {
 
   async processMessageWithAI(message: string, userId: string) {
     try {
-      const response = await portkeyClient.chat.completions.create({
+      console.log("Received message");
+      const response = await portkey.chat.completions.create({
         messages: [{ role: "user", content: message }],
-        model: "gpt-3.5-turbo", // or any other model supported by Portkey
+        model: "gemini-pro", // Using Google's Gemini Pro model
       });
 
       const aiResponse = response.choices[0].message.content;
