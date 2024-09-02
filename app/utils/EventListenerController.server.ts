@@ -1,5 +1,6 @@
 import { EventEmitter } from "events";
 import { getUserId, getUserIdCookie } from "~/utils/userStore.server";
+import { portkeyClient } from "~/utils/portkeyClient.server";
 
 type ChatEvent = {
   type: "message" | "action";
@@ -55,6 +56,33 @@ class EventListenerController {
     headers.append("Set-Cookie", getUserIdCookie(userId));
 
     return new Response(stream, { headers });
+  }
+
+  async processMessageWithAI(message: string, userId: string) {
+    try {
+      const response = await portkeyClient.chat.completions.create({
+        messages: [{ role: "user", content: message }],
+        model: "gpt-3.5-turbo", // or any other model supported by Portkey
+      });
+
+      const aiResponse = response.choices[0].message.content;
+      this.dispatchEvent(
+        { type: "message", data: { message: aiResponse, isAI: true } },
+        userId
+      );
+    } catch (error) {
+      console.error("Error processing message with AI:", error);
+      this.dispatchEvent(
+        {
+          type: "message",
+          data: {
+            message: "Sorry, I couldn't process your request.",
+            isAI: true,
+          },
+        },
+        userId
+      );
+    }
   }
 
   dispatchEvent(event: Omit<ChatEvent, "userId">, userId: string) {

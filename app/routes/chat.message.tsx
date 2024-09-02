@@ -11,9 +11,12 @@ export const action: ActionFunction = async ({ request }) => {
 
   console.log(`Dispatching message for user ${userId}: ${message}`);
   eventListenerController.dispatchEvent(
-    { type: "message", data: { message } },
+    { type: "message", data: { message, isAI: false } },
     userId
   );
+
+  // Process the message with AI
+  await eventListenerController.processMessageWithAI(message, userId);
 
   return json({ success: true });
 };
