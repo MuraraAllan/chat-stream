@@ -1,9 +1,30 @@
 import { useEffect, useState, useCallback } from "react";
 import { useFetcher } from "@remix-run/react";
+import ReactMarkdown from "react-markdown";
+import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
+import { tomorrow } from "react-syntax-highlighter/dist/cjs/styles/prism";
 
 type Message = {
   content: string;
   isAI: boolean;
+};
+
+const CodeBlock = ({
+  language,
+  value,
+}: {
+  language: string;
+  value: string;
+}) => {
+  return (
+    <SyntaxHighlighter
+      language={language}
+      style={tomorrow}
+      wrapLongLines={true}
+    >
+      {value}
+    </SyntaxHighlighter>
+  );
 };
 
 export default function ChatScreen() {
@@ -35,7 +56,7 @@ export default function ChatScreen() {
 
               return newMessages;
             });
-            if (data.data.isPartial == false) {
+            if (data.data.isPartial === false) {
               setIsProcessing(false);
             }
           }
@@ -82,6 +103,10 @@ export default function ChatScreen() {
     [actionFetcher]
   );
 
+  const formatMessage = (content: string) => {
+    return content.replace(/\n/g, "  \n");
+  };
+
   return (
     <div className="p-4 max-w-6xl mx-auto h-screen flex flex-col">
       <div className="flex-grow mb-4 bg-white rounded-lg shadow-md p-4 overflow-y-auto">
@@ -93,8 +118,31 @@ export default function ChatScreen() {
                 msg.isAI ? "bg-gray-100" : "bg-blue-100 text-right"
               }`}
             >
-              {msg.isAI ? "AI: " : "You: "}
-              {msg.content}
+              <strong>{msg.isAI ? "AI: " : "You: "}</strong>
+              {msg.isAI ? (
+                <ReactMarkdown
+                  children={formatMessage(msg.content)}
+                  className="markdown-content"
+                  components={{
+                    code({ node, inline, className, children, ...props }) {
+                      const match = /language-(\w+)/.exec(className || "");
+                      return !inline && match ? (
+                        <CodeBlock
+                          language={match[1]}
+                          value={String(children).replace(/\n$/, "")}
+                          {...props}
+                        />
+                      ) : (
+                        <code className={className} {...props}>
+                          {children}
+                        </code>
+                      );
+                    },
+                  }}
+                />
+              ) : (
+                msg.content
+              )}
             </li>
           ))}
         </ul>

@@ -81,7 +81,7 @@ class EventListenerController {
             {
               type: "message",
               data: {
-                message: partialContent,
+                message: accumulatedResponse,
                 isAI: true,
                 isPartial: true,
               },
