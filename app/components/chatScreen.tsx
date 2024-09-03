@@ -23,11 +23,21 @@ export default function ChatScreen() {
         const data = JSON.parse(event.data);
         if (data.type === "message") {
           if (data.data.isAI) {
-            setMessages((prev) => [
-              ...prev,
-              { content: data.data.message, isAI: true },
-            ]);
-            setIsProcessing(false);
+            setMessages((prev) => {
+              const newMessages = prev.filter((msg, index, array) => {
+                if (!msg.isAI) return true;
+                return (
+                  index < array.length - 1 || !array[array.length - 1].isAI
+                );
+              });
+
+              newMessages.push({ content: data.data.message, isAI: true });
+
+              return newMessages;
+            });
+            if (data.data.isPartial == false) {
+              setIsProcessing(false);
+            }
           }
         } else if (data.type === "action") {
           setActions((prev) => [...prev, data.data.actionType]);
@@ -73,8 +83,8 @@ export default function ChatScreen() {
   );
 
   return (
-    <div className="p-4 max-w-2xl mx-auto">
-      <div className="mb-4 bg-white rounded-lg shadow-md p-4 h-96 overflow-y-auto">
+    <div className="p-4 max-w-6xl mx-auto h-screen flex flex-col">
+      <div className="flex-grow mb-4 bg-white rounded-lg shadow-md p-4 overflow-y-auto">
         <ul className="space-y-4">
           {messages.map((msg, index) => (
             <li

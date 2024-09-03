@@ -28,9 +28,9 @@ class EventListenerController {
         };
 
         const listener = (event: ChatEvent) => {
-          console.log(`Received event for user ${userId}:`, event);
+          // console.log(`Received event for user ${userId}:`, event);
           if (event.userId === userId) {
-            console.log(`Sending event to user ${userId}`);
+            // console.log(`Sending event to user ${userId}`);
             send(JSON.stringify(event));
           }
         };
@@ -62,13 +62,45 @@ class EventListenerController {
     try {
       console.log("Received message");
       const response = await portkey.chat.completions.create({
-        messages: [{ role: "user", content: message }],
-        model: "gemini-pro", // Using Google's Gemini Pro model
+        messages: [
+          { role: "system", content: "You are a helpful assistant." },
+          { role: "user", content: message },
+        ],
+        stream: true,
       });
 
-      const aiResponse = response.choices[0].message.content;
+      let accumulatedResponse = "";
+
+      for await (const chunk of response) {
+        if (chunk.choices[0]?.delta?.content) {
+          const partialContent = chunk.choices[0].delta.content;
+          accumulatedResponse += partialContent;
+          console.log("received partial", partialContent);
+          // Dispatch the partial content to the client
+          this.dispatchEvent(
+            {
+              type: "message",
+              data: {
+                message: partialContent,
+                isAI: true,
+                isPartial: true,
+              },
+            },
+            userId
+          );
+        }
+      }
+
+      // Dispatch the complete response
       this.dispatchEvent(
-        { type: "message", data: { message: aiResponse, isAI: true } },
+        {
+          type: "message",
+          data: {
+            message: accumulatedResponse,
+            isAI: true,
+            isPartial: false,
+          },
+        },
         userId
       );
     } catch (error) {
@@ -79,6 +111,7 @@ class EventListenerController {
           data: {
             message: "Sorry, I couldn't process your request.",
             isAI: true,
+            isPartial: false,
           },
         },
         userId
@@ -88,7 +121,7 @@ class EventListenerController {
 
   dispatchEvent(event: Omit<ChatEvent, "userId">, userId: string) {
     const fullEvent: ChatEvent = { ...event, userId };
-    console.log(`Dispatching event for user ${userId}:`, fullEvent);
+    // console.log(`Dispatching event for user ${userId}:`, fullEvent);
     this.emitter.emit("chatEvent", fullEvent);
   }
 }
