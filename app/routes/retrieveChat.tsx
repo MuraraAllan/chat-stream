@@ -1,7 +1,6 @@
 import type { LoaderFunction } from "@remix-run/node";
-import { createChatEventListener } from "~/utils/chatEventListner.server";
+import { eventListenerController } from "~/utils/EventListenerController.server";
 
 export const loader: LoaderFunction = async ({ request }) => {
-  const listener = createChatEventListener(request);
-  return listener.stream;
+  return eventListenerController.createListener(request);
 };
