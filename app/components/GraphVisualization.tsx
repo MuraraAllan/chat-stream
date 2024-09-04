@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from "react";
+import { useSharedState } from "~/context/SharedStateContext";
 import * as d3 from "d3";
 
 interface NodeData {
@@ -12,10 +13,8 @@ interface GraphVisualizationProps {
   onStateChange: (newState: NodeData) => void;
 }
 
-const GraphVisualization: React.FC<GraphVisualizationProps> = ({
-  graphData,
-  onStateChange,
-}) => {
+export default function GraphVisualization() {
+  const { graphData } = useSharedState();
   const svgRef = useRef<SVGSVGElement>(null);
   const [selectedNode, setSelectedNode] =
     useState<d3.HierarchyNode<NodeData> | null>(null);
@@ -106,7 +105,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
       });
 
     svg.on("click", handleCloseDetail);
-  }, [graphData, onStateChange, handleCloseDetail]);
+  }, [graphData, handleCloseDetail]);
 
   const renderNodeContent = (node: d3.HierarchyNode<NodeData>) => {
     return (
@@ -181,6 +180,4 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
       )}
     </div>
   );
-};
-
-export default GraphVisualization;
+}

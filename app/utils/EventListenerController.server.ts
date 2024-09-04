@@ -100,27 +100,8 @@ class EventListenerController {
       }
 
       // Parse the accumulated response
-      const answerMatch = accumulatedResponse.match(
-        /ANSWER:([\s\S]*?)ACTIVE_NODES:/
-      );
-      const nodesMatch = accumulatedResponse.match(/ACTIVE_NODES:([\s\S]*)/);
 
-      let answer = "";
-      let activeNodes: string[] = [];
-
-      if (answerMatch && answerMatch[1]) {
-        answer = answerMatch[1].trim();
-      }
-
-      if (nodesMatch && nodesMatch[1]) {
-        try {
-          activeNodes = JSON.parse(nodesMatch[1].trim());
-        } catch (parseError) {
-          console.error("Error parsing active nodes:", parseError);
-        }
-      }
-
-      const graphState: GraphState = { activeNodes };
+      const graphState = { ...graphData };
 
       // Dispatch the complete response
       console.log("answer is", accumulatedResponse);
@@ -147,7 +128,7 @@ class EventListenerController {
         userId
       );
 
-      return { answer, graphState };
+      return { graphState };
     } catch (error) {
       console.error("Error processing message with AI:", error);
       this.dispatchEvent(
@@ -163,7 +144,7 @@ class EventListenerController {
       );
       return {
         answer: "Error processing request",
-        graphState: { activeNodes: [] },
+        graphState,
       };
     }
   }

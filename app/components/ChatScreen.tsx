@@ -1,19 +1,8 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
-import { useFetcher } from "@remix-run/react";
+import { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
 import { tomorrow } from "react-syntax-highlighter/dist/cjs/styles/prism";
-import { NodeData } from "~/types/graph";
-
-type Message = {
-  content: string;
-  isAI: boolean;
-};
-
-interface ChatScreenProps {
-  graphData: NodeData;
-  onGraphUpdate: (newGraphData: NodeData) => void;
-}
+import { useSharedState } from "../context/SharedStateContext";
 
 const CodeBlock = ({
   language,
@@ -33,14 +22,9 @@ const CodeBlock = ({
   );
 };
 
-export default function ChatScreen({
-  graphData,
-  onGraphUpdate,
-}: ChatScreenProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
+export default function ChatScreen() {
+  const { messages, isProcessing, sendMessage } = useSharedState();
   const [inputMessage, setInputMessage] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
-  const messageFetcher = useFetcher();
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -53,63 +37,6 @@ export default function ChatScreen({
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
-  useEffect(() => {
-    const eventSource = new EventSource("/retrieveChat");
-
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === "message") {
-          if (data.data.isAI) {
-            setMessages((prev) => {
-              const newMessages = prev.filter((msg, index, array) => {
-                if (!msg.isAI) return true;
-                return (
-                  index < array.length - 1 || !array[array.length - 1].isAI
-                );
-              });
-
-              newMessages.push({ content: data.data.message, isAI: true });
-
-              return newMessages;
-            });
-            if (data.data.isPartial === false) {
-              setIsProcessing(false);
-            }
-          }
-        } else if (data.type === "updateGraphState") {
-          //onGraphUpdate(data.data.graphState);
-        }
-      } catch (error) {
-        console.error("Error parsing SSE message:", error);
-      }
-    };
-
-    eventSource.onerror = (error) => {
-      console.error("SSE error:", error);
-      eventSource.close();
-    };
-
-    return () => {
-      eventSource.close();
-    };
-  }, [onGraphUpdate]);
-
-  const sendMessage = useCallback(
-    (message: string) => {
-      if (message.trim() === "") return;
-
-      setMessages((prev) => [...prev, { content: message, isAI: false }]);
-      messageFetcher.submit(
-        { message, graphState: JSON.stringify(graphData) },
-        { method: "post", action: "/chat/message" }
-      );
-      setInputMessage("");
-      setIsProcessing(true);
-    },
-    [messageFetcher, graphData]
-  );
 
   const formatMessage = (content: string) => {
     return content.replace(/\n/g, "  \n");
@@ -134,9 +61,9 @@ export default function ChatScreen({
                 <ReactMarkdown
                   className="markdown-content"
                   components={{
-                    code({ node, inline, className, children, ...props }) {
+                    code({ className, children, ...props }) {
                       const match = /language-(\w+)/.exec(className || "");
-                      return !inline && match ? (
+                      return match ? (
                         <CodeBlock
                           language={match[1]}
                           value={String(children).replace(/\n$/, "")}
