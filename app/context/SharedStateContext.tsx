@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useLayoutEffect } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { useFetcher } from "@remix-run/react";
 import { NodeData } from "~/types/graph";
 
@@ -28,7 +28,7 @@ export const SharedStateProvider: React.FC<{
   const [graphData, setGraphData] = useState<NodeData>(initialGraphData);
   const messageFetcher = useFetcher();
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     const eventSource = new EventSource("/retrieveChat");
 
     eventSource.onmessage = (event) => {

@@ -1,21 +1,9 @@
-import { EventEmitter } from "events";
 import { getUserId, getUserIdCookie } from "~/utils/userStore.server";
-import { portkey } from "~/utils/portkeyClient.server";
+import { eventBus, ChatEvent } from "~/services/EventBus.server";
+import { aiService } from "~/services/AIService.server";
 import { NodeData } from "~/types/graph";
 
-type ChatEvent = {
-  type: "message" | "action" | "updateGraph";
-  data: Record<string, unknown>;
-  userId: string;
-};
-
 class EventListenerController {
-  private emitter: EventEmitter;
-
-  constructor() {
-    this.emitter = new EventEmitter();
-  }
-
   createListener(request: Request) {
     const userId = getUserId(request);
     console.log(`Creating event listener for user ${userId}`);
@@ -28,19 +16,17 @@ class EventListenerController {
           controller.enqueue(encoder.encode(`data: ${data}\n\n`));
         };
 
-        const listener = (event: ChatEvent) => {
+        const unsubscribe = eventBus.subscribe((event: ChatEvent) => {
           if (event.userId === userId) {
             send(JSON.stringify(event));
           }
-        };
-
-        this.emitter.on("chatEvent", listener);
+        });
 
         send(JSON.stringify({ type: "ping", data: "Connection established" }));
 
         request.signal.addEventListener("abort", () => {
           console.log(`Closing SSE connection for user ${userId}`);
-          this.emitter.off("chatEvent", listener);
+          unsubscribe();
           controller.close();
         });
       },
@@ -62,96 +48,22 @@ class EventListenerController {
     graphData: NodeData,
     userId: string
   ) {
-    try {
-      console.log("Received message");
+    const result = await aiService.processMessage(message, graphData, userId);
 
-      const systemPrompt =
-        process.env.AI_SYSTEM_PROMPT?.replace(
-          "{{GRAPH_DATA}}",
-          JSON.stringify(graphData, null, 2)
-        ) || "";
+    // Dispatch the updated graph state
+    eventBus.publish({
+      type: "updateGraph",
+      data: {
+        graphState: result.graphState,
+      },
+      userId,
+    });
 
-      const response = await portkey.chat.completions.create({
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: message },
-        ],
-        stream: true,
-      });
-
-      let accumulatedResponse = "";
-
-      for await (const chunk of response) {
-        if (chunk.choices[0]?.delta?.content) {
-          const partialContent = chunk.choices[0].delta.content;
-          accumulatedResponse += partialContent;
-          this.dispatchEvent(
-            {
-              type: "message",
-              data: {
-                message: accumulatedResponse,
-                isAI: true,
-                isPartial: true,
-              },
-            },
-            userId
-          );
-        }
-      }
-
-      // Parse the accumulated response
-
-      const graphState = { ...graphData };
-
-      // Dispatch the complete response
-      console.log("answer is", accumulatedResponse);
-      this.dispatchEvent(
-        {
-          type: "message",
-          data: {
-            message: accumulatedResponse,
-            isAI: true,
-            isPartial: false,
-          },
-        },
-        userId
-      );
-
-      // Dispatch the updated graph state
-      this.dispatchEvent(
-        {
-          type: "updateGraphState",
-          data: {
-            graphState,
-          },
-        },
-        userId
-      );
-
-      return { graphState };
-    } catch (error) {
-      console.error("Error processing message with AI:", error);
-      this.dispatchEvent(
-        {
-          type: "message",
-          data: {
-            message: "Sorry, I couldn't process your request.",
-            isAI: true,
-            isPartial: false,
-          },
-        },
-        userId
-      );
-      return {
-        answer: "Error processing request",
-        graphState,
-      };
-    }
+    return result;
   }
 
   dispatchEvent(event: Omit<ChatEvent, "userId">, userId: string) {
-    const fullEvent: ChatEvent = { ...event, userId };
-    this.emitter.emit("chatEvent", fullEvent);
+    eventBus.publish({ ...event, userId });
   }
 }
 
