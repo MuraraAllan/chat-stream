@@ -25,6 +25,17 @@ class EventListenerController {
         });
 
         send(JSON.stringify({ type: "ping", data: "Connection established" }));
+        const initialMessage = {
+          type: "message",
+          data: {
+            message:
+              "Hi, I'm Allan Murara's personal assistant. I'm here to showcase Allan's professional experience and provide information about his skills, education, and more. How can I assist you today?",
+            isAI: true,
+            isPartial: false,
+          },
+          userId,
+        };
+        send(JSON.stringify(initialMessage));
 
         request.signal.addEventListener("abort", () => {
           console.log(`Closing SSE connection for user ${userId}`);
@@ -50,7 +61,6 @@ class EventListenerController {
     userId: string
   ) {
     const result = await aiService.processMessage(message, graphData, userId);
-    console.log("RESULT ON CONTROLLER IS >>>", result);
     return result;
   }
 

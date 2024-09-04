@@ -30,5 +30,5 @@
 }
 
 .glow-effect {
-  animation: pulseGlow 2s infinite;
+  animation: pulseGlow 0.7s infinite;
 }

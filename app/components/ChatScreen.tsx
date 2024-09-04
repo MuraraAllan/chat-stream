@@ -83,7 +83,7 @@ export default function ChatScreen() {
               }`}
               style={{
                 boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
-                width: "70%",
+                width: "90%",
               }}
             >
               <strong className="block mb-1 text-sm">

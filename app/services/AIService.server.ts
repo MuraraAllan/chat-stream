@@ -26,7 +26,7 @@ export class AIService {
           const partialContent = chunk.choices[0].delta.content;
           accumulatedResponse += partialContent;
 
-          await new Promise((resolve) => setTimeout(resolve, 50));
+          await new Promise((resolve) => setTimeout(resolve, 48));
 
           eventBus.publish({
             type: "message",
