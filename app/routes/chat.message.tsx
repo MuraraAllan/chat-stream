@@ -13,7 +13,8 @@ export const action: ActionFunction = async ({ request }) => {
 
   const userId = getUserId(request);
 
-  console.log(`Dispatching message for user ${userId}: ${message}`);
+  console.log(`Processing message for user ${userId}: ${message}`);
+
   eventListenerController.dispatchEvent(
     { type: "message", data: { message, isAI: false } },
     userId
@@ -26,13 +27,11 @@ export const action: ActionFunction = async ({ request }) => {
     userId
   );
 
+  console.log(`AI response for user ${userId}:`, aiResponse);
+
   // Update the graph based on AI response
-  // You might need to parse the AI response to extract graph data
-  // c
-  console.log("ai response is", aiResponse);
-  const newGraphData = aiResponse;
   eventListenerController.dispatchEvent(
-    { type: "updateGraph", data: { newGraphData } },
+    { type: "updateGraph", data: { newGraphData: aiResponse.graphState } },
     userId
   );
 

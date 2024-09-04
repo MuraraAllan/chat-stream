@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useRef } from "react";
 import { useFetcher } from "@remix-run/react";
 import { NodeData } from "~/types/graph";
 
@@ -27,33 +27,56 @@ export const SharedStateProvider: React.FC<{
   const [isProcessing, setIsProcessing] = useState(false);
   const [graphData, setGraphData] = useState<NodeData>(initialGraphData);
   const messageFetcher = useFetcher();
+  const currentAIMessageRef = useRef("");
 
   useEffect(() => {
     const eventSource = new EventSource("/retrieveChat");
 
     eventSource.onmessage = (event) => {
+      console.log("Received SSE event:", event.data);
       try {
         const data = JSON.parse(event.data);
         if (data.type === "message") {
           if (data.data.isAI) {
-            setMessages((prev) => {
-              const newMessages = prev.filter((msg, index, array) => {
-                if (!msg.isAI) return true;
-                return (
-                  index < array.length - 1 || !array[array.length - 1].isAI
-                );
+            if (data.data.isPartial) {
+              currentAIMessageRef.current += data.data.message;
+              setMessages((prev) => {
+                const newMessages = [...prev];
+                if (
+                  newMessages.length > 0 &&
+                  newMessages[newMessages.length - 1].isAI
+                ) {
+                  newMessages[newMessages.length - 1].content =
+                    currentAIMessageRef.current;
+                } else {
+                  newMessages.push({
+                    content: currentAIMessageRef.current,
+                    isAI: true,
+                  });
+                }
+                return newMessages;
               });
-
-              newMessages.push({ content: data.data.message, isAI: true });
-
-              return newMessages;
-            });
-            if (data.data.isPartial === false) {
+            } else {
+              // Final message
+              setMessages((prev) => {
+                const newMessages = [...prev];
+                if (
+                  newMessages.length > 0 &&
+                  newMessages[newMessages.length - 1].isAI
+                ) {
+                  newMessages[newMessages.length - 1].content =
+                    data.data.message;
+                } else {
+                  newMessages.push({ content: data.data.message, isAI: true });
+                }
+                return newMessages;
+              });
+              currentAIMessageRef.current = "";
               setIsProcessing(false);
             }
           }
-        } else if (data.type === "updateGraphState") {
-          setGraphData(data.data.graphState);
+        } else if (data.type === "updateGraph") {
+          setGraphData(data.data.newGraphData);
         }
       } catch (error) {
         console.error("Error parsing SSE message:", error);

@@ -1,26 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
-import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { tomorrow } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import { useSharedState } from "../context/SharedStateContext";
-
-const CodeBlock = ({
-  language,
-  value,
-}: {
-  language: string;
-  value: string;
-}) => {
-  return (
-    <SyntaxHighlighter
-      language={language}
-      style={tomorrow}
-      wrapLongLines={true}
-    >
-      {value}
-    </SyntaxHighlighter>
-  );
-};
 
 export default function ChatScreen() {
   const { messages, isProcessing, sendMessage } = useSharedState();
@@ -38,88 +20,138 @@ export default function ChatScreen() {
     scrollToBottom();
   }, [messages]);
 
-  const formatMessage = (content: string) => {
-    return content.replace(/\n/g, "  \n");
+  const MarkdownComponents: Components = {
+    h1: ({ children }) => (
+      <h1 className="text-2xl font-bold mb-4 mt-6">{children}</h1>
+    ),
+    h2: ({ children }) => (
+      <h2 className="text-xl font-bold mb-3 mt-5">{children}</h2>
+    ),
+    h3: ({ children }) => (
+      <h3 className="text-lg font-bold mb-2 mt-4">{children}</h3>
+    ),
+    p: ({ children }) => <p className="mb-4">{children}</p>,
+    strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+    ul: ({ children }) => <ul className="list-disc pl-5 mb-4">{children}</ul>,
+    ol: ({ children }) => (
+      <ol className="list-decimal pl-5 mb-4">{children}</ol>
+    ),
+    li: ({ children }) => <li className="mb-2">{children}</li>,
+    code: ({ node, inline, className, children, ...props }) => {
+      const match = /language-(\w+)/.exec(className || "");
+      return !inline && match ? (
+        <SyntaxHighlighter
+          style={vscDarkPlus}
+          language={match[1]}
+          PreTag="div"
+          className="rounded-md my-2"
+          {...props}
+        >
+          {String(children).replace(/\n$/, "")}
+        </SyntaxHighlighter>
+      ) : (
+        <code className="bg-gray-100 rounded px-1 py-0.5" {...props}>
+          {children}
+        </code>
+      );
+    },
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex justify-center items-center h-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <div
-        ref={chatContainerRef}
-        className="flex-grow mb-4 bg-white rounded-lg shadow-md p-4 overflow-y-auto"
+        className="w-full max-w-xl chat-container p-4 relative"
+        style={{ zIndex: 10 }}
       >
-        <ul className="space-y-4">
+        <div
+          ref={chatContainerRef}
+          className="bg-white bg-opacity-90 backdrop-blur-sm rounded-lg shadow-lg p-4 mb-4 overflow-y-auto"
+          style={{
+            boxShadow: "0 10px 25px rgba(0, 0, 0, 0.1)",
+            height: "70vh",
+            transform: "scale(1.05)",
+            transformOrigin: "center center",
+          }}
+        >
           {messages.map((msg, index) => (
-            <li
+            <div
               key={index}
-              className={`p-2 rounded-lg ${
-                msg.isAI ? "bg-gray-100" : "bg-blue-100 text-right"
+              className={`p-3 rounded-lg mb-3 message-animation ${
+                msg.isAI
+                  ? "bg-blue-100 bg-opacity-70"
+                  : "bg-green-100 bg-opacity-70 ml-auto"
               }`}
+              style={{
+                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
+                width: "70%",
+              }}
             >
-              <strong>{msg.isAI ? "AI: " : "You: "}</strong>
+              <strong className="block mb-1 text-sm">
+                {msg.isAI ? "AI: " : "You: "}
+              </strong>
               {msg.isAI ? (
                 <ReactMarkdown
-                  className="markdown-content"
-                  components={{
-                    code({ className, children, ...props }) {
-                      const match = /language-(\w+)/.exec(className || "");
-                      return match ? (
-                        <CodeBlock
-                          language={match[1]}
-                          value={String(children).replace(/\n$/, "")}
-                          {...props}
-                        />
-                      ) : (
-                        <code className={className} {...props}>
-                          {children}
-                        </code>
-                      );
-                    },
-                  }}
+                  components={MarkdownComponents}
+                  className="markdown-content text-black text-sm"
                 >
-                  {formatMessage(msg.content)}
+                  {msg.content}
                 </ReactMarkdown>
               ) : (
-                msg.content
+                <p className="text-sm text-right">{msg.content}</p>
               )}
-            </li>
-          ))}
-        </ul>
-        {isProcessing && (
-          <div className="p-2 rounded-lg bg-gray-100 mt-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
-              <div
-                className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
-                style={{ animationDelay: "0.2s" }}
-              ></div>
-              <div
-                className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
-                style={{ animationDelay: "0.4s" }}
-              ></div>
             </div>
-          </div>
-        )}
+          ))}
+          {isProcessing && (
+            <div
+              className="p-2 rounded-lg bg-gray-100 bg-opacity-70 mt-2 message-animation"
+              style={{ width: "70%" }}
+            >
+              <div className="flex items-center space-x-2">
+                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce"></div>
+                <div
+                  className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce"
+                  style={{ animationDelay: "0.2s" }}
+                ></div>
+                <div
+                  className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce"
+                  style={{ animationDelay: "0.4s" }}
+                ></div>
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="flex space-x-2">
+          <input
+            type="text"
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            className="flex-grow border border-gray-300 rounded-l-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white bg-opacity-90 backdrop-blur-sm"
+            placeholder="Type your message..."
+            onKeyPress={(e) => {
+              if (e.key === "Enter" && !isProcessing) {
+                sendMessage(inputMessage);
+                setInputMessage("");
+              }
+            }}
+          />
+          <button
+            onClick={() => {
+              if (!isProcessing) {
+                sendMessage(inputMessage);
+                setInputMessage("");
+              }
+            }}
+            className="bg-blue-500 text-white px-6 py-2 rounded-r-lg text-sm glow-effect transition-colors duration-200 hover:bg-blue-600"
+            disabled={isProcessing}
+          >
+            Send
+          </button>
+        </div>
       </div>
-      <div className="flex space-x-2">
-        <input
-          type="text"
-          value={inputMessage}
-          onChange={(e) => setInputMessage(e.target.value)}
-          className="flex-grow border border-gray-300 rounded px-2 py-1"
-          placeholder="Type your message..."
-          onKeyPress={(e) => {
-            if (e.key === "Enter") sendMessage(inputMessage);
-          }}
-        />
-        <button
-          onClick={() => sendMessage(inputMessage)}
-          className="bg-blue-500 text-white px-4 py-2 rounded"
-          disabled={isProcessing}
-        >
-          Send
-        </button>
-      </div>
+      <div
+        className="absolute inset-0 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 opacity-50"
+        style={{ zIndex: 1, filter: "blur(20px)" }}
+      ></div>
     </div>
   );
 }
