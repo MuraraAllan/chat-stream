@@ -1,19 +1,58 @@
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useFetcher } from "@remix-run/react";
+import ReactMarkdown from "react-markdown";
+import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
+import { tomorrow } from "react-syntax-highlighter/dist/cjs/styles/prism";
+import { NodeData } from "~/types/graph";
 
 type Message = {
   content: string;
   isAI: boolean;
 };
 
-export default function ChatScreen() {
+interface ChatScreenProps {
+  graphData: NodeData;
+  onGraphUpdate: (newGraphData: NodeData) => void;
+}
+
+const CodeBlock = ({
+  language,
+  value,
+}: {
+  language: string;
+  value: string;
+}) => {
+  return (
+    <SyntaxHighlighter
+      language={language}
+      style={tomorrow}
+      wrapLongLines={true}
+    >
+      {value}
+    </SyntaxHighlighter>
+  );
+};
+
+export default function ChatScreen({
+  graphData,
+  onGraphUpdate,
+}: ChatScreenProps) {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [actions, setActions] = useState<string[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-
   const messageFetcher = useFetcher();
-  const actionFetcher = useFetcher();
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop =
+        chatContainerRef.current.scrollHeight;
+    }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   useEffect(() => {
     const eventSource = new EventSource("/retrieveChat");
@@ -23,14 +62,24 @@ export default function ChatScreen() {
         const data = JSON.parse(event.data);
         if (data.type === "message") {
           if (data.data.isAI) {
-            setMessages((prev) => [
-              ...prev,
-              { content: data.data.message, isAI: true },
-            ]);
-            setIsProcessing(false);
+            setMessages((prev) => {
+              const newMessages = prev.filter((msg, index, array) => {
+                if (!msg.isAI) return true;
+                return (
+                  index < array.length - 1 || !array[array.length - 1].isAI
+                );
+              });
+
+              newMessages.push({ content: data.data.message, isAI: true });
+
+              return newMessages;
+            });
+            if (data.data.isPartial === false) {
+              setIsProcessing(false);
+            }
           }
-        } else if (data.type === "action") {
-          setActions((prev) => [...prev, data.data.actionType]);
+        } else if (data.type === "updateGraphState") {
+          //onGraphUpdate(data.data.graphState);
         }
       } catch (error) {
         console.error("Error parsing SSE message:", error);
@@ -45,7 +94,7 @@ export default function ChatScreen() {
     return () => {
       eventSource.close();
     };
-  }, []);
+  }, [onGraphUpdate]);
 
   const sendMessage = useCallback(
     (message: string) => {
@@ -53,28 +102,25 @@ export default function ChatScreen() {
 
       setMessages((prev) => [...prev, { content: message, isAI: false }]);
       messageFetcher.submit(
-        { message },
+        { message, graphState: JSON.stringify(graphData) },
         { method: "post", action: "/chat/message" }
       );
       setInputMessage("");
       setIsProcessing(true);
     },
-    [messageFetcher]
+    [messageFetcher, graphData]
   );
 
-  const sendAction = useCallback(
-    (actionType: string) => {
-      actionFetcher.submit(
-        { actionType },
-        { method: "post", action: "/chat/action" }
-      );
-    },
-    [actionFetcher]
-  );
+  const formatMessage = (content: string) => {
+    return content.replace(/\n/g, "  \n");
+  };
 
   return (
-    <div className="p-4 max-w-2xl mx-auto">
-      <div className="mb-4 bg-white rounded-lg shadow-md p-4 h-96 overflow-y-auto">
+    <div className="flex flex-col h-full">
+      <div
+        ref={chatContainerRef}
+        className="flex-grow mb-4 bg-white rounded-lg shadow-md p-4 overflow-y-auto"
+      >
         <ul className="space-y-4">
           {messages.map((msg, index) => (
             <li
@@ -83,8 +129,32 @@ export default function ChatScreen() {
                 msg.isAI ? "bg-gray-100" : "bg-blue-100 text-right"
               }`}
             >
-              {msg.isAI ? "AI: " : "You: "}
-              {msg.content}
+              <strong>{msg.isAI ? "AI: " : "You: "}</strong>
+              {msg.isAI ? (
+                <ReactMarkdown
+                  className="markdown-content"
+                  components={{
+                    code({ node, inline, className, children, ...props }) {
+                      const match = /language-(\w+)/.exec(className || "");
+                      return !inline && match ? (
+                        <CodeBlock
+                          language={match[1]}
+                          value={String(children).replace(/\n$/, "")}
+                          {...props}
+                        />
+                      ) : (
+                        <code className={className} {...props}>
+                          {children}
+                        </code>
+                      );
+                    },
+                  }}
+                >
+                  {formatMessage(msg.content)}
+                </ReactMarkdown>
+              ) : (
+                msg.content
+              )}
             </li>
           ))}
         </ul>
@@ -104,16 +174,6 @@ export default function ChatScreen() {
           </div>
         )}
       </div>
-      <div className="mb-4">
-        <h2 className="text-xl font-bold">Actions:</h2>
-        <ul className="list-disc list-inside">
-          {actions.map((action, index) => (
-            <li key={index} className="my-2">
-              {action}
-            </li>
-          ))}
-        </ul>
-      </div>
       <div className="flex space-x-2">
         <input
           type="text"
@@ -131,13 +191,6 @@ export default function ChatScreen() {
           disabled={isProcessing}
         >
           Send
-        </button>
-        <button
-          onClick={() => sendAction("wave")}
-          className="bg-green-500 text-white px-4 py-2 rounded"
-          disabled={isProcessing}
-        >
-          Wave
         </button>
       </div>
     </div>
