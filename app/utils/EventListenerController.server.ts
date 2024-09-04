@@ -1,9 +1,10 @@
 import { EventEmitter } from "events";
 import { getUserId, getUserIdCookie } from "~/utils/userStore.server";
 import { portkey } from "~/utils/portkeyClient.server";
+import { NodeData } from "~/types/graph";
 
 type ChatEvent = {
-  type: "message" | "action";
+  type: "message" | "action" | "updateGraph";
   data: Record<string, unknown>;
   userId: string;
 };
@@ -28,9 +29,7 @@ class EventListenerController {
         };
 
         const listener = (event: ChatEvent) => {
-          // console.log(`Received event for user ${userId}:`, event);
           if (event.userId === userId) {
-            // console.log(`Sending event to user ${userId}`);
             send(JSON.stringify(event));
           }
         };
@@ -58,12 +57,23 @@ class EventListenerController {
     return new Response(stream, { headers });
   }
 
-  async processMessageWithAI(message: string, userId: string) {
+  async processMessageWithAI(
+    message: string,
+    graphData: NodeData,
+    userId: string
+  ) {
     try {
       console.log("Received message");
+
+      const systemPrompt =
+        process.env.AI_SYSTEM_PROMPT?.replace(
+          "{{GRAPH_DATA}}",
+          JSON.stringify(graphData, null, 2)
+        ) || "";
+
       const response = await portkey.chat.completions.create({
         messages: [
-          { role: "system", content: "You are a helpful assistant." },
+          { role: "system", content: systemPrompt },
           { role: "user", content: message },
         ],
         stream: true,
@@ -75,8 +85,6 @@ class EventListenerController {
         if (chunk.choices[0]?.delta?.content) {
           const partialContent = chunk.choices[0].delta.content;
           accumulatedResponse += partialContent;
-          console.log("received partial", partialContent);
-          // Dispatch the partial content to the client
           this.dispatchEvent(
             {
               type: "message",
@@ -91,7 +99,31 @@ class EventListenerController {
         }
       }
 
+      // Parse the accumulated response
+      const answerMatch = accumulatedResponse.match(
+        /ANSWER:([\s\S]*?)ACTIVE_NODES:/
+      );
+      const nodesMatch = accumulatedResponse.match(/ACTIVE_NODES:([\s\S]*)/);
+
+      let answer = "";
+      let activeNodes: string[] = [];
+
+      if (answerMatch && answerMatch[1]) {
+        answer = answerMatch[1].trim();
+      }
+
+      if (nodesMatch && nodesMatch[1]) {
+        try {
+          activeNodes = JSON.parse(nodesMatch[1].trim());
+        } catch (parseError) {
+          console.error("Error parsing active nodes:", parseError);
+        }
+      }
+
+      const graphState: GraphState = { activeNodes };
+
       // Dispatch the complete response
+      console.log("answer is", accumulatedResponse);
       this.dispatchEvent(
         {
           type: "message",
@@ -103,6 +135,19 @@ class EventListenerController {
         },
         userId
       );
+
+      // Dispatch the updated graph state
+      this.dispatchEvent(
+        {
+          type: "updateGraphState",
+          data: {
+            graphState,
+          },
+        },
+        userId
+      );
+
+      return { answer, graphState };
     } catch (error) {
       console.error("Error processing message with AI:", error);
       this.dispatchEvent(
@@ -116,12 +161,15 @@ class EventListenerController {
         },
         userId
       );
+      return {
+        answer: "Error processing request",
+        graphState: { activeNodes: [] },
+      };
     }
   }
 
   dispatchEvent(event: Omit<ChatEvent, "userId">, userId: string) {
     const fullEvent: ChatEvent = { ...event, userId };
-    // console.log(`Dispatching event for user ${userId}:`, fullEvent);
     this.emitter.emit("chatEvent", fullEvent);
   }
 }
