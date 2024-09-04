@@ -11,6 +11,7 @@ class EventBus {
 
   constructor() {
     this.emitter = new EventEmitter();
+    this.emitter.setMaxListeners(100); // Increase max listeners
   }
 
   subscribe(callback: (event: ChatEvent) => void) {
@@ -20,6 +21,11 @@ class EventBus {
 
   publish(event: ChatEvent) {
     this.emitter.emit("chatEvent", event);
+  }
+
+  // Add this method to help with debugging
+  getListenerCount() {
+    return this.emitter.listenerCount("chatEvent");
   }
 }
 

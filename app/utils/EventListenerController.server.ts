@@ -13,11 +13,13 @@ class EventListenerController {
         const encoder = new TextEncoder();
 
         const send = (data: string) => {
+          console.log(`Sending data to user ${userId}:`, data);
           controller.enqueue(encoder.encode(`data: ${data}\n\n`));
         };
 
         const unsubscribe = eventBus.subscribe((event: ChatEvent) => {
           if (event.userId === userId) {
+            console.log(`Received event for user ${userId}:`, event);
             send(JSON.stringify(event));
           }
         });
@@ -42,32 +44,22 @@ class EventListenerController {
 
     return new Response(stream, { headers });
   }
-
   async processMessageWithAI(
     message: string,
     graphData: NodeData,
     userId: string
   ) {
     const result = await aiService.processMessage(message, graphData, userId);
-
-    // Dispatch the updated graph state
-    eventBus.publish({
-      type: "updateGraph",
-      data: {
-        graphState: result.graphState,
-      },
-      userId,
-    });
-
+    console.log("RESULT ON CONTROLLER IS >>>", result);
     return result;
   }
 
   dispatchEvent(event: Omit<ChatEvent, "userId">, userId: string) {
+    console.log(`Dispatching event for user ${userId}:`, event);
     eventBus.publish({ ...event, userId });
   }
 }
 
-// Singleton instance
 const eventListenerController = new EventListenerController();
 
 export { eventListenerController };

@@ -1,6 +1,6 @@
+import { portkey } from "~/utils/portkeyClient.server";
 import { NodeData } from "~/types/graph";
 import { eventBus } from "./EventBus.server";
-import { portkey } from "~/utils/portkeyClient.server";
 
 export class AIService {
   async processMessage(message: string, graphData: NodeData, userId: string) {
@@ -25,10 +25,13 @@ export class AIService {
         if (chunk.choices[0]?.delta?.content) {
           const partialContent = chunk.choices[0].delta.content;
           accumulatedResponse += partialContent;
+
+          await new Promise((resolve) => setTimeout(resolve, 50));
+
           eventBus.publish({
             type: "message",
             data: {
-              message: accumulatedResponse,
+              message: partialContent,
               isAI: true,
               isPartial: true,
             },
@@ -48,9 +51,7 @@ export class AIService {
         userId,
       });
 
-      // Here you would process the AI response to update the graph state
-      // For now, we'll just return the original graph data
-      return { graphState: graphData };
+      return { graphState: graphData, aiResponse: accumulatedResponse };
     } catch (error) {
       console.error("Error processing message with AI:", error);
       eventBus.publish({
@@ -62,7 +63,7 @@ export class AIService {
         },
         userId,
       });
-      return { graphState: graphData };
+      return { graphState: graphData, aiResponse: "Error processing request" };
     }
   }
 }
