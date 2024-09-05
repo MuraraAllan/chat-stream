@@ -1,5 +1,6 @@
 export interface NodeData {
   name: string;
+  description: string;
   children?: NodeData[];
-  description?: string;
+  activeNodes?: string[]; // Add this line
 }

@@ -13,13 +13,12 @@ class EventListenerController {
         const encoder = new TextEncoder();
 
         const send = (data: string) => {
-          console.log(`Sending data to user ${userId}:`, data);
           controller.enqueue(encoder.encode(`data: ${data}\n\n`));
         };
 
         const unsubscribe = eventBus.subscribe((event: ChatEvent) => {
           if (event.userId === userId) {
-            console.log(`Received event for user ${userId}:`, event);
+            // console.log(`Received event for user ${userId}:`, event);
             send(JSON.stringify(event));
           }
         });

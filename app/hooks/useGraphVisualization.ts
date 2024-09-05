@@ -1,21 +1,22 @@
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useRef, useMemo } from "react";
 import * as d3 from "d3";
 import { NodeData } from "~/types/graph";
+import { useSharedState } from "~/context/SharedStateContext";
 
-export function useGraphVisualization(graphData: NodeData) {
+export function useGraphVisualization() {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [nodes, setNodes] = useState<d3.HierarchyCircularNode<NodeData>[]>([]);
-  const [selectedNode, setSelectedNode] =
-    useState<d3.HierarchyNode<NodeData> | null>(null);
+  const { graphData, updateGraphData } = useSharedState();
 
-  const dimensions = useMemo(() => {
-    const width = 932 * 0.7;
-    const height = 932 * 0.7;
-    return { width, height };
-  }, []);
+  const dimensions = useMemo(
+    () => ({
+      width: 932 * 0.7,
+      height: 932 * 0.7,
+    }),
+    []
+  );
 
-  useEffect(() => {
-    if (!svgRef.current) return;
+  const nodes = useMemo(() => {
+    if (!graphData) return [];
 
     const pack = d3
       .pack<NodeData>()
@@ -27,9 +28,36 @@ export function useGraphVisualization(graphData: NodeData) {
       .sum(() => 1)
       .sort((a, b) => (b.value || 0) - (a.value || 0));
 
-    const packedNodes = pack(root).descendants();
-    setNodes(packedNodes);
-  }, [graphData, dimensions]);
+    return pack(root).descendants();
+  }, [graphData, dimensions.width, dimensions.height]);
 
-  return { svgRef, nodes, selectedNode, setSelectedNode, dimensions };
+  const toggleSelectedNode = (node: d3.HierarchyNode<NodeData> | null) => {
+    if (node) {
+      const isNodeAlreadySelected = graphData.activeNodes?.includes(
+        node.data.name
+      );
+
+      const updatedActiveNodes = isNodeAlreadySelected
+        ? graphData.activeNodes?.filter((name) => name !== node.data.name) || []
+        : [...new Set([...(graphData.activeNodes || []), node.data.name])];
+
+      const updatedGraphData = {
+        ...graphData,
+        activeNodes: updatedActiveNodes,
+      };
+
+      updateGraphData(updatedGraphData);
+    }
+  };
+
+  console.log("useGraphVisualization - graphData:", graphData);
+  console.log("useGraphVisualization - nodes:", nodes);
+
+  return {
+    svgRef,
+    nodes,
+    toggleSelectedNode,
+    dimensions,
+    activeNodes: new Set(graphData.activeNodes || []),
+  };
 }

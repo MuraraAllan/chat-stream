@@ -41,7 +41,7 @@ export default function ChatScreen() {
       const match = /language-(\w+)/.exec(className || "");
       return !inline && match ? (
         <SyntaxHighlighter
-          style={vscDarkPlus}
+          style={tomorrow}
           language={match[1]}
           PreTag="div"
           className="rounded-md my-2"
@@ -58,33 +58,21 @@ export default function ChatScreen() {
   };
 
   return (
-    <div className="flex justify-center items-center h-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      <div
-        className="w-full max-w-xl chat-container p-4 relative"
-        style={{ zIndex: 10 }}
-      >
+    <div className="flex flex-col h-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      <div className="flex-grow overflow-hidden p-4">
         <div
           ref={chatContainerRef}
-          className="bg-white bg-opacity-90 backdrop-blur-sm rounded-lg shadow-lg p-4 mb-4 overflow-y-auto"
-          style={{
-            boxShadow: "0 10px 25px rgba(0, 0, 0, 0.1)",
-            height: "70vh",
-            transform: "scale(1.05)",
-            transformOrigin: "center center",
-          }}
+          className="h-full bg-white bg-opacity-90 backdrop-blur-sm rounded-lg shadow-lg p-4 overflow-y-auto"
         >
           {messages.map((msg, index) => (
             <div
               key={index}
-              className={`p-3 rounded-lg mb-3 message-animation ${
+              className={`p-3 rounded-lg mb-3 ${
                 msg.isAI
                   ? "bg-blue-100 bg-opacity-70"
                   : "bg-green-100 bg-opacity-70 ml-auto"
               }`}
-              style={{
-                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
-                width: "90%",
-              }}
+              style={{ width: "90%" }}
             >
               <strong className="block mb-1 text-sm">
                 {msg.isAI ? "AI: " : "You: "}
@@ -103,7 +91,7 @@ export default function ChatScreen() {
           ))}
           {isProcessing && (
             <div
-              className="p-2 rounded-lg bg-gray-100 bg-opacity-70 mt-2 message-animation"
+              className="p-2 rounded-lg bg-gray-100 bg-opacity-70 mt-2"
               style={{ width: "70%" }}
             >
               <div className="flex items-center space-x-2">
@@ -120,6 +108,8 @@ export default function ChatScreen() {
             </div>
           )}
         </div>
+      </div>
+      <div className="p-4">
         <div className="flex space-x-2">
           <input
             type="text"
@@ -141,17 +131,13 @@ export default function ChatScreen() {
                 setInputMessage("");
               }
             }}
-            className="bg-blue-500 text-white px-6 py-2 rounded-r-lg text-sm glow-effect transition-colors duration-200 hover:bg-blue-600"
+            className="bg-blue-500 text-white px-6 py-2 rounded-r-lg text-sm transition-colors duration-200 hover:bg-blue-600"
             disabled={isProcessing}
           >
             Send
           </button>
         </div>
       </div>
-      <div
-        className="absolute inset-0 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 opacity-50"
-        style={{ zIndex: 1, filter: "blur(20px)" }}
-      ></div>
     </div>
   );
 }

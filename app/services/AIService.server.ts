@@ -20,13 +20,14 @@ export class AIService {
       });
 
       let accumulatedResponse = "";
+      let activeNodes: string[] = [];
 
       for await (const chunk of response) {
         if (chunk.choices[0]?.delta?.content) {
           const partialContent = chunk.choices[0].delta.content;
           accumulatedResponse += partialContent;
 
-          await new Promise((resolve) => setTimeout(resolve, 48));
+          // await new Promise((resolve) => setTimeout(resolve, 48));
 
           eventBus.publish({
             type: "message",
@@ -40,6 +41,28 @@ export class AIService {
         }
       }
 
+      // Extract active nodes from the response
+      const activeNodesMatch = accumulatedResponse.match(
+        /ACTIVE_NODES:\s*(\[.*?\])/
+      );
+      if (activeNodesMatch) {
+        try {
+          activeNodes = JSON.parse(activeNodesMatch[1]);
+        } catch (error) {
+          console.error("Error parsing active nodes:", error);
+        }
+      }
+
+      // Filter activeNodes to include only main nodes
+      const mainNodes = graphData.children?.map((child) => child.name) || [];
+      activeNodes = activeNodes.filter((node) => mainNodes.includes(node));
+
+      // Update graphData with activeNodes
+      const updatedGraphData = {
+        ...graphData,
+        activeNodes,
+      };
+
       // Publish the complete response
       eventBus.publish({
         type: "message",
@@ -51,7 +74,16 @@ export class AIService {
         userId,
       });
 
-      return { graphState: graphData, aiResponse: accumulatedResponse };
+      // Publish the updated graph data
+      eventBus.publish({
+        type: "updateGraph",
+        data: {
+          newGraphData: updatedGraphData,
+        },
+        userId,
+      });
+
+      return { graphState: updatedGraphData, aiResponse: accumulatedResponse };
     } catch (error) {
       console.error("Error processing message with AI:", error);
       eventBus.publish({

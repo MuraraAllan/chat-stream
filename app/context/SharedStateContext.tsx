@@ -23,11 +23,15 @@ export const SharedStateProvider: React.FC<{
   children: React.ReactNode;
   initialGraphData: NodeData;
 }> = ({ children, initialGraphData }) => {
+  const [graphData, setGraphData] = useState<NodeData>(initialGraphData);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [graphData, setGraphData] = useState<NodeData>(initialGraphData);
   const messageFetcher = useFetcher();
   const currentAIMessageRef = useRef("");
+
+  useEffect(() => {
+    console.log("SharedStateProvider - Initial graphData:", graphData);
+  }, []);
 
   useEffect(() => {
     const eventSource = new EventSource("/retrieveChat");
@@ -76,6 +80,7 @@ export const SharedStateProvider: React.FC<{
             }
           }
         } else if (data.type === "updateGraph") {
+          console.log("HEY THERE", data.data.newGraphData);
           setGraphData(data.data.newGraphData);
         }
       } catch (error) {
@@ -105,6 +110,7 @@ export const SharedStateProvider: React.FC<{
   };
 
   const updateGraphData = (newGraphData: NodeData) => {
+    console.log("received new graphdata", newGraphData);
     setGraphData(newGraphData);
   };
 

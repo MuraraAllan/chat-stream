@@ -1,0 +1,15 @@
+@keyframes purple-glow {
+  0% {
+    filter: drop-shadow(0 0 2px rgba(128, 0, 128, 0.7));
+  }
+  50% {
+    filter: drop-shadow(0 0 10px rgba(128, 0, 128, 0.9));
+  }
+  100% {
+    filter: drop-shadow(0 0 2px rgba(128, 0, 128, 0.7));
+  }
+}
+
+.node-glow {
+  animation: purple-glow 2s ease-in-out infinite;
+}
