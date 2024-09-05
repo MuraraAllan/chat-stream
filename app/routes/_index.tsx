@@ -1,7 +1,7 @@
-import { useState, useCallback } from "react";
 import type { MetaFunction } from "@remix-run/node";
-import ChatScreen from "~/components/chatScreen";
+import ChatScreen from "~/components/ChatScreen";
 import GraphVisualization from "~/components/GraphVisualization";
+import { SharedStateProvider } from "~/context/SharedStateContext";
 import { NodeData } from "~/types/graph";
 
 export const meta: MetaFunction = () => {
@@ -13,12 +13,6 @@ export const meta: MetaFunction = () => {
     },
   ];
 };
-
-interface NodeData {
-  name: string;
-  children?: NodeData[];
-  description?: string;
-}
 
 const initialGraphData: NodeData = {
   name: "Allan Murara",
@@ -97,26 +91,16 @@ const initialGraphData: NodeData = {
 };
 
 export default function Index() {
-  const [graphData, setGraphData] = useState<NodeData>(initialGraphData);
-
-  const handleGraphStateChange = useCallback((newState: NodeData) => {
-    setGraphData(newState);
-  }, []);
-
   return (
-    <div className="flex flex-col md:flex-row h-screen">
-      <div className="w-full md:w-7/10 h-1/2 md:h-full overflow-hidden flex items-center justify-center">
-        <GraphVisualization
-          graphData={graphData}
-          onStateChange={handleGraphStateChange}
-        />
+    <SharedStateProvider initialGraphData={initialGraphData}>
+      <div className="flex h-screen overflow-hidden">
+        <div className="flex-grow">
+          <GraphVisualization />
+        </div>
+        <div className="w-2/4 min-w-[300px] max-w-md border-l border-gray-200">
+          <ChatScreen />
+        </div>
       </div>
-      <div className="w-full md:w-3/10 h-1/2 md:h-full overflow-hidden">
-        <ChatScreen
-          graphData={graphData}
-          onGraphUpdate={handleGraphStateChange}
-        />
-      </div>
-    </div>
+    </SharedStateProvider>
   );
 }

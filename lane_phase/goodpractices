@@ -1,0 +1,192 @@
+
+Decisões / padrões de arquitetura em React
+Os princípios de desenvolvimento que mais influenciam nas minhas decisões de arquitetura são Implementação, Dry , Especialização, Clean Code, AHA, Quebrantamento & Separação de Concerns
+DRY - Dont Repeat Yourself
+Criar códigos repetidos ou funcionalidades similares que poderiam se tornar uma abstração, em geral, causa problemas de mantenibilidade.
+Procuramos abstrair sempre que o código em questão pode ser usado em outro ponto da aplicação ou de outro produto.
+Clean Code x "Dirty" Code
+Clean code é uma pratica comum, onde procuramos gerar elegância, legibilidade, previsibilidade, escalonamento dentre outras características de um suposto bom código.
+Mas essa prática não é preferida, as vezes.
+Um bom código limpo, vem na sequência de uma implementação mais "suja", reforçando a importância de Iteração e refactor.
+Separação de Preocupações ( Single Concern / Single responsibility )
+A separação de preocupações é não atribuir mais de um comportamento a uma função, objeto, classe, componente, ou o que a linguagem em questão requisita.
+Extendemos isso a componentes mais exclusivamente pois falamos aqui de React.
+Um componente Button não deve ser responsável por validar o conteúdo do Form, pelo contrário, ele deve apenas gerenciar se o Botão esta ativo ou não, em suma, gerenciar seu estado.
+Assim como um componente InputText não deve ser responsável por validar o conteúdo dele, apenas armazenar seu estado e comportamentos ou propagar os eventos.
+Especialização
+O processo de especialização, é, aproveitar de uma funcionalidade/comportamento de um componente ( Single Responsibility ) e extender, adicionar a ele, um novo comportamento, gerando um novo Componente.
+Especialização + Single Responsibility
+Podemos pensar no Componente de InputText, sua responsabilidade é expor ao usuário um campo de inserção de valores ( e os comportamentos-herança como eventos, tratamento de valor do evento, propagação do evento (event-bubling), implementação de props... ) especializado em um InputPassword, sendo o InputPassword responsável por dispor ao usuário um campo de inserção de valores "secretos" (privados) e no formato de letras e números e símbolos, ou seja, sem uma máscara, e no caso de arquiteturas mais atuais de React, não responsável por garantir força da senha, através de especialização do InputText.
+Para que o InputPassword possa ser conectado a um Form, ele precisa ser especializado em FormInputPassword, que se responsabiliza por conectar ao Form e validar a força da senha, mantendo assim uma única responsabilidade para cada componente, porém gerando uma cascata de especializações.
+Em alguns casos, comportamentos podem ser adicionadas a um componente, sem que quebremos o single Responsibility, importante manter em mente que a iteração (composição) de um componente com o todo deve ser única, e não sobrescrever ou atrapalhar outros elementos, ou seja, deve ser capaz de interagir com o todo sem quebrar a composição.
+Um componente pode expor duas ou mais props, como no caso do exemplo do material, um Dialog, onde você muda parte do conteúdo do Dialog, ou no nosso code-base de um Modal, onde você muda os conteúdos dele.
+No caso do Dialog, a única responsabilidade do Dialog é demonstrar um dialog na tela, não se importando com seu conteúdo.
+Um exemplo "literal", fora do código de React e orientado a "Comportamento" e efeito colateral :
+// single-concern - Mostrar um dialog com titulo e mensagem
+const Dialog = (title, message) => ShowDialogWithTitleAndMessage
+
+// concern UX - Orientar o usuário de que essa tela é a de agradecimento por
+seguir o tutorial
+
+// especialização - mostrar um Dialog com titulo e mensagem do Howdy e
+agradecimento.
+// single-concern - renderizar um dialog com mensagens personaliazdas
+const HowdyDialog = Especialize Dialog(
+title=“Howdy”
+message=”Thank you for tasting specialized components with me!”
+)
+
+Seguindo esta linha, se o Dialog precisa da funcionalidade de fechar, ela é uma sub-funcionalidade ou "comportamento-herança".
+Se em alguns lugares o Dialog precisa da funcionalidade de surgir de baixo para cima e em outros de cima pra baixo, devemos especializar o Dialog em DialogFromBehind e DialogFromAbove
+Se queremos um Dialog com fields, precisamos compor ( adicionar código ao Dialog ) para renderizar o children como comportamento-herança, já que isso também é renderizar um Dialog e especializar o Dialog em um DialogWithInputPassword.
+Se queremos adicionar um valor, controlar estado, entendemos como "funcionalidade" ou "comportamento" e se faz necessário especializar o Dialog em DialogWithInMemoryStore.
+Todos os nomes desse exemplo são fictícios e visão ser lúdicos, siga a naming convention.
+AHA - Avoid Hasty Abstractions
+DRY, ou não se repetir, é um princípio importante nas nossas decisões. Mas e quando devemos esquecer de não se repetir e Evitar abstrações precipitadas ?
+Ideal levar em consideração a Composição ( capacidade da abstração de interagir com o resto do ecossistema, sem prejudicar. ), Interoperabilidade (capacidade de agregar comportamentos ou funcionalidades para a code-base ) e Implementabilidade ( capacidade de atender aos casos de uso previstos - necessário prever o máximo possível e sair da casinha até pros não previsíveis ).
+Como exemplo prático de nossa code-base, temos o Modal. O modal no design-system possui comportamento relacionado a Estilo ( largura variável ) e portanto merece uma Implementação especializada.
+xModal - Responsável por renderizar quadrado, título ( sempre compõem no Design )
+ e conteúdo através de children (não deve se preocupar com o que é o conteúdo);
+
+ModalCompact - Especialização de Modal
+ModalLiquid - Especialização de Modal
+
+ModalRecoverPassword - Extensão de ModalCompact ou Liquid, passando o conteúdo por
+children. Suporta tanto implementações de conteudo com Form quanto sem.
+
+A parte importante aqui é que poderiamos ter um ModalLiquidForm, como uma abstração que apenas se preocupa com o "Body" do modal e já gera o Form, recebe schema por props... Enfim, aplica DRY e facilita nossa vida, gera elegância e não precisamos declarar vários botões, ou poderiamos ter uma prop que controla o Tipo do botão, mas e quando quisessemos no Design adicionar a possibilidade de composição com um ButtonPrimaryMedium também? Novo IF?...
+Mas e quando quiséssemos ter um Iframe envolvendo nosso button para que ele renderizasse um vídeo antes de ser passível de clicar, como num ADS? Hmm, dai fariamos uma implementação no ModalCompactForm ? Mas e se isso ocorrese em ModalLiquidForm também? Outra implementação ?
+A afirmação dita outra vez, quando uma regra não atende todos casos, talvez não caiba uma regra, ideal buscar convenção
+Componentes de estilo - emotion
+Utilizamos um pacote chamado emotion, que norteia nossas implementações de estilo.
+Especializações de componente de estilo são geradas através de styled(Component), em vários casos, especializamos elementos html, que são gerados através de styled.elementName.
+TODO: Criar uma sessão específica sobre emotion e Especialização de componentes de estilo.
+Leituras extras necessárias para reforçar o conhecimento e que embasam as decisões
+https://reactjs.org/docs/thinking-in-react.html - algumas dicas do React para como pensar em arquitetura de componentes
+https://reactjs.org/docs/error-boundaries.html
+https://medium.com/@eltocino/specialization-in-reactjs-a24a45b4bd4f - Especialização em React
+https://kentcdodds.com/blog/how-to-write-a-react-component-in-typescript - algumas dicas sobre como escrever um component em TS
+https://kentcdodds.com/blog/javascript-pass-by-value-function-parameters - porque funções JS são executadas com valores e não com índices
+https://www.deconstructconf.com/2019/dan-abramov-the-wet-codebase - DRY x WET
+https://kentcdodds.com/blog/aha-programming - DRY X WET X AHA Prefira duplicidade de código ao invés de abstrações erradas - Sandi Metz
+https://americanexpress.io/clean-code-dirty-code/ - Clean Code x Dirty Code in React by American Express
+https://kentcdodds.com/blog/common-mistakes-with-react-testing-library - erros comuns com react-testing-library
+https://testing-library.com/docs/queries/about/#priority - que queries devo usar?
+Implementando Componentes do Design-System em React
+Ideal se ambientar com a Naming Convention de nosso design-system aqui antes de prosseguir lendo essa documento.
+Componentes definidos no Toolabs norteiam a implementação no código fonte. Conforme mencionado anteriormente, a Implementação de um Componente do Design-System ( ButtonPrimarySmall ) em uma tela esta vínculado ao Figma.
+Pode-se entender o Figma como a implementação visual dos componentes, entretanto, o que em nossa code-base se chama FormButtonPrimarySmall, é também um ButtonPrimarySmall para o design-system.
+Acabamos criando mais componentes em nossa Code-Base pois temos de lidar com contextos de implementação, como no caso do FormButtonPrimarySmall, ele deve se conectar com o Form e permanecer desabilitado até que os campos do Form possuam valor válido.
+Mesmo caso para os Inputs, que ao serem implementados num contexto Form, precisam mudar seu visual para expor erros e se conectar ao Contexto Form, através de useFormContext.
+Implementando Componentes do Design-System na prática
+Vamos tomar de exemplo alguns grupos de Componentes do Toolabs, Buttons, Modal, Input e Text.
+
+Buttons
+Em nosso Toolabs, temos váriações de Contexto nos Botões.
+Objeto > Contexto
+ButtonPrimary
+
+Objeto > Contexto
+ButtonCircular
+
+Em nossa code base, as mesmas variações são implementadas como Especializações do componente Button, se tornando parte do resultado final.
+ButtonPrimary
+ButtonCircular
+
+Especialização
+Variações de Estilo ( Densidade ) - ButtonPrimary & ButtonCircular
+
+Ao observarmos o Toolabs, é possível identificar duas variações de ButtonPrimary.
+Ao implementarmos Densidade, temos uma mudança considerável de estilo, para evitarmos uma implementação por props em um componente ButtonPrimary ( size ), especializamos ele em ButtonPrimaryEstilo.
+Avançando nossa implementação para
+Objeto -> Contexto -> Estilo ( Densidade )
+ButtonPrimarySmall
+ButtonPrimaryMedium
+
+Já para o ButtonCircular, temos a variação ButtonCircular com densidade ( Medium | Small ) e temos a variação de estilo ButtonCircularFilled, que falaremos no próximo tópico.
+
+
+Aqui cabe forçar que ButtonCircular e ButtonCircularFilled se tornam duas especializações já que eles implementam diferentes efeitos-colateral de mudança de estilo, então, para evitarmos prop, especializamos.
+ButtonCircular possui duas variações de estilo ( Densidade ), Small e Medium, se tornando
+ButtonCircularSmall
+ButtonCircularMedium
+
+Variação de Estilo - ButtonCircularFilled
+A diferença de estilo entre o ButtonCircular e ButtonCircularFilled a primeira vista, é que um é preenchido e outro não, o que pode parecer simples e mais conveniente implementar por Props.
+Mas se analisarmos variações de densidade (estilo), de estados ( ButtonCircular tem loading e disabled, ButtonCircularFilled não ), se faz Jus um novo componente, já que não queremos implementar as lógicas de estado em algo que não as possui, todavia, podemos especializar o componente de container de um ButtonCircular em um ButtonCircularFilled.
+Ou seja, no cenário final, implementamos a Lógica de estado dentro do Component ButtonCircular, mas também criamos um componente ButtonCircularContainer, utilizado por ambos, ButtonCircularSmall, ButtonCircularMedium e ButtonCircularFilled.
+ButtonCircularFilled possui uma variação de estilo ( Densidade ) apenas, a variação Medium, que não é destacada no Toolabs, mas pode ser encontrada na Implementação ( Figma ), se tornando
+ButtonCircularFilled
+
+Comportamento - ButtonPrimary
+ButtonPrimary, em todas suas variações de estilo ( Medium, Small ), contempla um comportamento.
+
+Para respeitaramos as definições de comportamento, basta que criemos as variações ButtonPrimaryVariaçãoLíquid e ButtonPrimaryVariaçãoSolid.
+Mas aqui temos algo interessante, ao analisarmos a implementação do ButtonPrimaryMedium em Desktop e Mobile no mesmo formulário, percebemos que eles tem um comportamento específico, a mistura dos dois.
+
+
+Lidamos com isso na implementação, criando uma especialização para cada variação do ButtonPrimary, chamada de ButtonFluid.
+Por sermos mobile first, o ButtonPrimaryMediumFluid renderiza um botão Líquido em dispositivos Mobile e um Compact em dispositivos Desktop.
+Vale ressaltar que a especialização Fluid, deve se preocupar apenas se o Dispositivo é mobile ou Desktop e não se ele é fluído ou não, e um ButtonPrimaryMedium deve se preocupar apenas em controlar estado e especializar um ButtonPrimary.
+Outra observação importante é que devemos especializar em nossa code-base apenas aquilo que esta implementado no Figma.
+Estados
+O estado em geral é controlado por propriedades, sendo sugerido que uma especialização do componente de estilo seja gerada para cada um dos estados, partindo do Normal, e um Componente Especializado controle uma espécie de state machine, controlando o estado atual.
+const ButtonPrimaryStyle = styled.button``
+ const ButtonPrimaryMediumStyle = styled(ButtonPrimaryStyle)``
+ const ButtonPrimaryMediumLoadingStyle = styled(ButtonPrimaryStyle)``
+ const ButtonPrimaryMediumDisabledStyle = styled(ButtonPrimaryStyle)``
+
+ const ButtonPrimaryMedium = ({ disabled, loading, content }) => {
+   if (loading === true) {
+     return <ButtonPrimaryMediumLoadingStyle />
+   }
+   if (disabled === true)  {
+     return <ButtonPrimaryMediumDisabledStyle>
+       {content}
+     </ButtonPrimaryMediumDisabledStyle>
+   }
+
+   ...
+ }
+
+Em um cenário muito sonho (futuro), o botão possuirá estados, derivados de um estado maior ( tela ou aplicação ), através de Reducers. Ainda temos muito a andar, mas segue uma implementação sugerida por Kent C. Dodds que segue o padrão de Estado por tela.
+Entende-se estado de aplicação quando vinculamos a ErrorBoundary e LoadingBounday, o que é ainda novo no React e não detemos conhecimento.
+https://kentcdodds.com/blog/stop-using-isloading-booleans
+A primeira vista, essa cascata de componentes pode parecer um "over-processing", já que temos várias declarações de componentes de estilo, espalhadas por toda aplicação.
+Mas perceba, estes componentes são constantes, ou seja, eles jamais vão re-renderizar até que o bundle INTEIRO seja recarregado ( page reload / first load ), o side-effect é re-renderizar apenas o ButtonPrimaryMedium, que porta estado.
+Vale ressaltar que o ButtonPrimaryMedium ainda é um Functional Component, e o melhor um Pure Functional Component, já que ele renderizar igual toda vez, se a mesma prop for enviada pra ele ( nenhum dos estilos re-renderiza também, uma cascata mt hype ) e não altera nenhum de seus estados, apenas recebe.
+Inputs
+Em nosso Toolabs, temos variações de Tipo (Contexto) nos Inputs. Aqui não temos variação de densidade o que facilita a compreensão, mas ainda requer uma boa especialização para separar as preocupações.
+Um InputText por exemplo, não deve se preocupar com mostrar ou esconder seu conteúdo quando isto é um comportamento exclusivo de um InputPassword
+Objeto > Contexto (Tipo)
+InputText
+
+Objeto > Contexto (Tipo)
+InputPassword
+
+Objeto > Contexto (Tipo)
+InputSelect
+
+FormInput
+No caso de um InputPassword adicionado a um Form, temos uma questão de implementação que não é tratada pelo Dezaine, que é a aplicação de um Form ( elemento HTML form ), para que possamos controlar as ações HTTP.
+Contexto (Implementação) > Objeto > Contexto ( Tipo )
+FormInputPassword
+
+InputPassword
+Comportamento
+TODO: Update com fotinha nova do toolabs com o comportamento do botão atualizado.
+Como descrito anteriormente, um InputPassword possui um comportamento específico, que é o de esconder e demonstrar o valor atual do Input, essa é a variação que nos força a especializar esse componente, para separarmos as preocupações ( concerns ).
+
+Uma implementação simples
+InputSelect
+O InputSelect trás um exemplo valioso de composição, idealmente nosso InputSelect é construido
+Estados
+Estados em inputs são controlados de forma similar a em um componente Button, com parte deles sendo controlado por dentro do próprio Input, através de reação a eventos ( OnFocus, OnBlur ... ).
+Por questões de Separação de preocupações, nos queremos que um InputText controle o estado, já que é a partir dele que especializamos
+No grupo de Inputs, a maioria compartilha estados de sendo também tratados por props por enquanto, para sake of breviety, não vamos explicar novamente a lógica de evitar booleanos para estados e utilizar máquinas de estado declarativas.
+
+Modal
+Mais exemplos de Variações
+Text
+Implementando Composição
+Implementando Comportamentos

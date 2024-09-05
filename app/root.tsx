@@ -6,6 +6,7 @@ import {
   ScrollRestoration,
 } from "@remix-run/react";
 import "./tailwind.css";
+import "./chatAnimations.css";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -15,10 +16,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.css"
-        />
       </head>
       <body>
         {children}

@@ -1,21 +1,9 @@
-import { EventEmitter } from "events";
 import { getUserId, getUserIdCookie } from "~/utils/userStore.server";
-import { portkey } from "~/utils/portkeyClient.server";
+import { eventBus, ChatEvent } from "~/services/EventBus.server";
+import { aiService } from "~/services/AIService.server";
 import { NodeData } from "~/types/graph";
 
-type ChatEvent = {
-  type: "message" | "action" | "updateGraph";
-  data: Record<string, unknown>;
-  userId: string;
-};
-
 class EventListenerController {
-  private emitter: EventEmitter;
-
-  constructor() {
-    this.emitter = new EventEmitter();
-  }
-
   createListener(request: Request) {
     const userId = getUserId(request);
     console.log(`Creating event listener for user ${userId}`);
@@ -28,19 +16,29 @@ class EventListenerController {
           controller.enqueue(encoder.encode(`data: ${data}\n\n`));
         };
 
-        const listener = (event: ChatEvent) => {
+        const unsubscribe = eventBus.subscribe((event: ChatEvent) => {
           if (event.userId === userId) {
+            // console.log(`Received event for user ${userId}:`, event);
             send(JSON.stringify(event));
           }
-        };
-
-        this.emitter.on("chatEvent", listener);
+        });
 
         send(JSON.stringify({ type: "ping", data: "Connection established" }));
+        const initialMessage = {
+          type: "message",
+          data: {
+            message:
+              "Hi, I'm Allan Murara's personal assistant. I'm here to showcase Allan's professional experience and provide information about his skills, education, and more. How can I assist you today?",
+            isAI: true,
+            isPartial: false,
+          },
+          userId,
+        };
+        send(JSON.stringify(initialMessage));
 
         request.signal.addEventListener("abort", () => {
           console.log(`Closing SSE connection for user ${userId}`);
-          this.emitter.off("chatEvent", listener);
+          unsubscribe();
           controller.close();
         });
       },
@@ -56,125 +54,21 @@ class EventListenerController {
 
     return new Response(stream, { headers });
   }
-
   async processMessageWithAI(
     message: string,
     graphData: NodeData,
     userId: string
   ) {
-    try {
-      console.log("Received message");
-
-      const systemPrompt =
-        process.env.AI_SYSTEM_PROMPT?.replace(
-          "{{GRAPH_DATA}}",
-          JSON.stringify(graphData, null, 2)
-        ) || "";
-
-      const response = await portkey.chat.completions.create({
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: message },
-        ],
-        stream: true,
-      });
-
-      let accumulatedResponse = "";
-
-      for await (const chunk of response) {
-        if (chunk.choices[0]?.delta?.content) {
-          const partialContent = chunk.choices[0].delta.content;
-          accumulatedResponse += partialContent;
-          this.dispatchEvent(
-            {
-              type: "message",
-              data: {
-                message: accumulatedResponse,
-                isAI: true,
-                isPartial: true,
-              },
-            },
-            userId
-          );
-        }
-      }
-
-      // Parse the accumulated response
-      const answerMatch = accumulatedResponse.match(
-        /ANSWER:([\s\S]*?)ACTIVE_NODES:/
-      );
-      const nodesMatch = accumulatedResponse.match(/ACTIVE_NODES:([\s\S]*)/);
-
-      let answer = "";
-      let activeNodes: string[] = [];
-
-      if (answerMatch && answerMatch[1]) {
-        answer = answerMatch[1].trim();
-      }
-
-      if (nodesMatch && nodesMatch[1]) {
-        try {
-          activeNodes = JSON.parse(nodesMatch[1].trim());
-        } catch (parseError) {
-          console.error("Error parsing active nodes:", parseError);
-        }
-      }
-
-      const graphState: GraphState = { activeNodes };
-
-      // Dispatch the complete response
-      console.log("answer is", accumulatedResponse);
-      this.dispatchEvent(
-        {
-          type: "message",
-          data: {
-            message: accumulatedResponse,
-            isAI: true,
-            isPartial: false,
-          },
-        },
-        userId
-      );
-
-      // Dispatch the updated graph state
-      this.dispatchEvent(
-        {
-          type: "updateGraphState",
-          data: {
-            graphState,
-          },
-        },
-        userId
-      );
-
-      return { answer, graphState };
-    } catch (error) {
-      console.error("Error processing message with AI:", error);
-      this.dispatchEvent(
-        {
-          type: "message",
-          data: {
-            message: "Sorry, I couldn't process your request.",
-            isAI: true,
-            isPartial: false,
-          },
-        },
-        userId
-      );
-      return {
-        answer: "Error processing request",
-        graphState: { activeNodes: [] },
-      };
-    }
+    const result = await aiService.processMessage(message, graphData, userId);
+    return result;
   }
 
   dispatchEvent(event: Omit<ChatEvent, "userId">, userId: string) {
-    const fullEvent: ChatEvent = { ...event, userId };
-    this.emitter.emit("chatEvent", fullEvent);
+    console.log(`Dispatching event for user ${userId}:`, event);
+    eventBus.publish({ ...event, userId });
   }
 }
 
-// Singleton instance
 const eventListenerController = new EventListenerController();
 
 export { eventListenerController };
