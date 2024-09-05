@@ -27,8 +27,6 @@ export class AIService {
           const partialContent = chunk.choices[0].delta.content;
           accumulatedResponse += partialContent;
 
-          // await new Promise((resolve) => setTimeout(resolve, 48));
-
           eventBus.publish({
             type: "message",
             data: {
@@ -53,14 +51,38 @@ export class AIService {
         }
       }
 
-      // Filter activeNodes to include only main nodes
-      const mainNodes = graphData.children?.map((child) => child.name) || [];
-      activeNodes = activeNodes.filter((node) => mainNodes.includes(node));
+      // Function to recursively get all children names
+      const getAllChildrenNames = (node: NodeData): string[] => {
+        let childrenNames: string[] = [];
+        if (node.children) {
+          for (const child of node.children) {
+            childrenNames.push(child.name);
+            childrenNames = childrenNames.concat(getAllChildrenNames(child));
+          }
+        }
+        return childrenNames;
+      };
 
-      // Update graphData with activeNodes
+      // Expand active nodes to include their children
+      let expandedActiveNodes = [...activeNodes];
+      for (const nodeName of activeNodes) {
+        const node = graphData.children?.find(
+          (child) => child.name === nodeName
+        );
+        if (node) {
+          expandedActiveNodes = expandedActiveNodes.concat(
+            getAllChildrenNames(node)
+          );
+        }
+      }
+
+      // Remove duplicates
+      expandedActiveNodes = Array.from(new Set(expandedActiveNodes));
+
+      // Update graphData with expanded active nodes
       const updatedGraphData = {
         ...graphData,
-        activeNodes,
+        activeNodes: expandedActiveNodes,
       };
 
       // Publish the complete response

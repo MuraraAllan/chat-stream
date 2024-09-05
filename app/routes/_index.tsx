@@ -1,4 +1,3 @@
-import { useCallback } from "react";
 import type { MetaFunction } from "@remix-run/node";
 import ChatScreen from "~/components/ChatScreen";
 import GraphVisualization from "~/components/GraphVisualization";
@@ -94,11 +93,11 @@ const initialGraphData: NodeData = {
 export default function Index() {
   return (
     <SharedStateProvider initialGraphData={initialGraphData}>
-      <div className="flex flex-col md:flex-row h-screen">
-        <div className="w-full md:w-7/10 h-1/2 md:h-full overflow-hidden flex items-center justify-center">
+      <div className="flex h-screen overflow-hidden">
+        <div className="flex-grow">
           <GraphVisualization />
         </div>
-        <div className="w-full md:w-3/10 h-1/2 md:h-full overflow-hidden">
+        <div className="w-2/4 min-w-[300px] max-w-md border-l border-gray-200">
           <ChatScreen />
         </div>
       </div>
