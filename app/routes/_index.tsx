@@ -3,6 +3,7 @@ import ChatScreen from "~/components/ChatScreen";
 import GraphVisualization from "~/components/GraphVisualization";
 import { SharedStateProvider } from "~/context/SharedStateContext";
 import { NodeData } from "~/types/graph";
+import mergedGraph from "~/data/graph";
 
 export const meta: MetaFunction = () => {
   return [
@@ -14,82 +15,46 @@ export const meta: MetaFunction = () => {
   ];
 };
 
-const initialGraphData: NodeData = {
-  name: "Allan Murara",
-  description:
-    "Full Stack Developer passionate about creating efficient and user-friendly applications.",
-  children: [
-    {
-      name: "Location",
-      description:
-        "Based in Jaraguá do Sul, Santa Catarina, Brazil. A city known for its industrial heritage and beautiful landscapes.",
-      children: [
-        {
-          name: "Jaraguá do Sul, SC, Brazil",
-          description:
-            "A city in southern Brazil, known for its German heritage and industrial economy.",
-        },
-      ],
-    },
-    {
-      name: "Education",
-      description:
-        "Continuous learner with a focus on modern web technologies and best practices.",
-      children: [
-        {
-          name: "Testing Javascript",
-          description:
-            "Comprehensive course on JavaScript testing methodologies and tools.",
-        },
-        {
-          name: "Full Stack Dev",
-          description:
-            "In-depth study of full stack development, covering both front-end and back-end technologies.",
-        },
-        {
-          name: "Computer Networks",
-          description:
-            "Study of computer networking principles, protocols, and architectures.",
-        },
-      ],
-    },
-    {
-      name: "Skills",
-      description:
-        "A diverse set of technical skills covering various aspects of software development.",
-      children: [
-        {
-          name: "FullStack",
-          description:
-            "Proficient in both front-end and back-end development, creating end-to-end solutions.",
-        },
-        {
-          name: "Data Design",
-          description:
-            "Experienced in designing efficient and scalable data structures and databases.",
-        },
-        {
-          name: "Project Management",
-          description:
-            "Skilled in managing software development projects, from planning to delivery.",
-        },
-      ],
-    },
-    {
-      name: "Experience",
-      description:
-        "Professional experience in software development and research.",
-      children: [
-        {
-          name: "Student / Research, LabX",
-          description:
-            "Conducted research and development in cutting-edge technologies at LabX.",
-        },
-      ],
-    },
-  ],
-};
+function convertGraph(inputGraph) {
+  function processNode(nodeName, nodeData) {
+    const node = {
+      name: nodeName,
+      description: Array.isArray(nodeData)
+        ? nodeData[0]
+        : "No description available.",
+      children: [],
+    };
 
+    if (Array.isArray(nodeData)) {
+      nodeData.forEach((item) => {
+        if (typeof item === "string" && item !== nodeName) {
+          node.children.push({
+            name: item,
+            description: `Related to ${nodeName}`,
+            children: [],
+          });
+        }
+      });
+    } else if (typeof nodeData === "object") {
+      Object.entries(nodeData).forEach(([key, value]) => {
+        if (key !== nodeName) {
+          const childNode = processNode(key, value);
+          node.children.push(childNode);
+        }
+      });
+    }
+
+    return node;
+  }
+
+  return Object.entries(inputGraph).map(([key, value]) =>
+    processNode(key, value)
+  );
+}
+
+const initialGraphData: NodeData = convertGraph(mergedGraph);
+
+console.log("merged graph is", initialGraphData);
 export default function Index() {
   return (
     <SharedStateProvider initialGraphData={initialGraphData}>
