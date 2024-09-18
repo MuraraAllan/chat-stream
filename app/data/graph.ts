@@ -2,15 +2,16 @@ const graph1 = {
   "Allan Murara": [
     "Jaraguá do Sul, Santa Catarina, Brazil",
     "Tech Expert",
-    "7+ years of full stack development",
+    "7+ years of FullStack developer",
     "10+ years of software-related career",
     "Education",
     "Skills",
     "Professional Experience",
-    "Studying LLMs & Full Stack Dev",
+    "Studying LLMs & FullStack Developer",
     "LabX - Brazil",
     "GitHub",
     "LinkedIn",
+    "Email",
   ],
   Education: [
     "Testing JavaScript with Kent C. Dodds",
@@ -19,18 +20,15 @@ const graph1 = {
     "Senai Jaraguá do Sul",
   ],
   "Testing JavaScript with Kent C. Dodds": ["Online", "2020"],
-  "Lambda School": [
-    "JavaScript Full Stack Developer",
-    "San Francisco, CA",
-    "2017 – 2018",
-  ],
+  "Lambda School": ["FullStack Developer", "San Francisco, CA", "2017 – 2018"],
   "Computer Networks": ["Senai Jaraguá do Sul", "2006 – 2007"],
+  Email: ["allan.murara@gmail.com"],
+  "allan.murara@gmail.com": ["Email"],
   Skills: [
     "Generalist",
     "Models",
     "Programming",
-    "Testing",
-    "DevOps",
+    "Software Test",
     "Database",
     "Operating Systems",
     "Version Control",
@@ -41,7 +39,7 @@ const graph1 = {
     "Data Design",
     "Project Management",
     "Solution Engineering",
-    "Full Stack Development",
+    "FullStack Developer",
   ],
   Models: [
     "LLMs",
@@ -69,7 +67,7 @@ const graph1 = {
     "jQuery",
     "Python",
   ],
-  Testing: [
+  "Software Test": [
     "E2E",
     "Unit",
     "Integration",
@@ -79,10 +77,9 @@ const graph1 = {
     "Chai",
     "Jest",
     "Cypress",
-    "React-testing",
+    "React-Testing-Library",
     "Enzyme",
   ],
-  DevOps: ["Jenkins", "CircleCI", "Docker/Docker Compose"],
   Database: [
     "MySQL",
     "PostgreSQL",
@@ -96,10 +93,10 @@ const graph1 = {
   "Version Control": ["Git", "GitHub"],
   Languages: ["English", "Portuguese", "Spanish"],
   "Professional Experience": [
-    "Studying LLMs & Full Stack Dev",
+    "Studying LLMs & FullStack Developer",
     "LabX - Brazil",
   ],
-  "Studying LLMs & Full Stack Dev": [
+  "Studying LLMs & FullStack Dev": [
     "LabX - Brazil",
     "October 2023 - Present",
     "Large Language Models",
@@ -195,7 +192,7 @@ const graph1 = {
 
 const graph2 = {
   "Studioplus - São Paulo, Brazil": [
-    "Full Stack Developer",
+    "FullStack Developer",
     "Independent Contractor",
     "July 2023 - January 2024",
     "Leonardo Mendes",
@@ -205,7 +202,7 @@ const graph2 = {
     "Product Retention",
     "Usability Improvement",
     "Customer Journey Enhancement",
-    "Backend Development",
+    "Backend Developer",
     "Remix React-app",
     "Node.js",
     "React",
@@ -244,7 +241,7 @@ const graph2 = {
     "Usability Improvement",
     "Customer Journey Enhancement",
   ],
-  "Backend Development": [
+  "Backend Developer": [
     "Remix React-app",
     "Node.js",
     "React",
@@ -333,7 +330,7 @@ const graph2 = {
   "Nash.io - Vaduz, Lichtenstein": [
     "Senior Front-End Engineer",
     "December 2019 - November 2020",
-    "Exchange App Development",
+    "Exchange App Developer",
     "Bug Fixes",
     "Feature Implementation",
     "Typescript",
@@ -357,7 +354,7 @@ const graph2 = {
     "Expanded Test Set Coverage",
     "Cost Savings",
   ],
-  "Exchange App Development": [
+  "Exchange App Developer": [
     "Bug Fixes",
     "Feature Implementation",
     "Typescript",
@@ -383,7 +380,7 @@ const graph2 = {
     "FullStack Developer",
     "Independent Contractor",
     "August 2019 - October 2019",
-    "Mobile Application Development",
+    "Mobile Application Developer",
     "Barcode Reader Implementation",
     "Browser API MediaDevices",
     "QuaggaJS",
@@ -433,7 +430,7 @@ const graph2 = {
 
 const graph3 = {
   "Priori Tecnologia - Brazil": [
-    "JavaScript Full Stack Developer",
+    "FullStack Developer",
     "Independent Contractor",
     "August 2018 - May 2019",
     "Seller System Available Offline",
@@ -491,7 +488,7 @@ const graph3 = {
     "Data Synchronization",
   ],
   "Node.js": [
-    "Backend Development",
+    "Backend Developer",
     "Express",
     "REST API",
     "SQL to JSON Conversion",
@@ -510,10 +507,10 @@ const graph3 = {
   "Order Management": ["Data Synchronization", "REST API", "Client Management"],
   "Shared Best Practices": ["JavaScript Paradigms", "Project Examples"],
   "Diretorio Web - Brazil": [
-    "Junior Full Stack Developer",
+    "FullStack Developer",
     "Independent Contractor",
     "January 2016 - July 2017",
-    "Financial Software Development",
+    "Financial Software Developer",
     "Rental Control System",
     "Real Estate Office Management",
     "PHP",
@@ -526,7 +523,7 @@ const graph3 = {
     "Intranet Software Maintenance",
     "Website Administrative Interfaces",
   ],
-  "Financial Software Development": [
+  "Financial Software Developer": [
     "Rental Control System",
     "Real Estate Office Management",
     "PHP",
@@ -561,7 +558,7 @@ const graph3 = {
     "Independent Contractor",
     "October 2013 – December 2015",
     "GeneXus",
-    "Desktop Application Development",
+    "Desktop Application Developer",
     "Sales Statistics Analysis",
     "Textile Company",
     "E-commerce Solution",
@@ -574,7 +571,7 @@ const graph3 = {
     "ERP System",
     "Visual Basic",
   ],
-  "Desktop Application Development": [
+  "Desktop Application Developer": [
     "GeneXus",
     "Sales Statistics Analysis",
     "Textile Company",
@@ -680,7 +677,7 @@ const graph4 = {
     "GeneXus",
     "SPED Fiscal",
     "Tax and Accounting Software Module",
-    "Self-Taught Development",
+    "Self-Taught Developer",
     "Development Time Reduction",
     "4-Month Project Acceleration",
     "Technical Support",
@@ -792,7 +789,7 @@ const graph5 = {
   GitHub: [
     "https://github.com/MuraraAllan/",
     "Graph Class Repository",
-    "Chat-Stream Project",
+    "Chat-Stream Project Repository",
     "Haraka Contributions",
     "Portkey-AI Contribution",
   ],
@@ -802,7 +799,7 @@ const graph5 = {
     "Bug Investigation",
   ],
   "Bug Investigation": ["Graph Class Repository", "Potential Code Flaw"],
-  "Chat-Stream Project": [
+  "Chat-Stream Project Repository": [
     "https://github.com/MuraraAllan/chat-stream",
     "Project Code",
   ],

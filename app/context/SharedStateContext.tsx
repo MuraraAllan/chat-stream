@@ -11,8 +11,8 @@ interface SharedStateContextType {
   messages: Message[];
   isProcessing: boolean;
   sendMessage: (message: string) => void;
-  graphData: NodeData;
-  updateGraphData: (newGraphData: NodeData) => void;
+  graphData: NodeData[];
+  updateGraphData: (newGraphData: NodeData[]) => void;
 }
 
 const SharedStateContext = createContext<SharedStateContextType | undefined>(
@@ -21,13 +21,19 @@ const SharedStateContext = createContext<SharedStateContextType | undefined>(
 
 export const SharedStateProvider: React.FC<{
   children: React.ReactNode;
-  initialGraphData: NodeData;
+  initialGraphData: NodeData[];
 }> = ({ children, initialGraphData }) => {
-  const [graphData, setGraphData] = useState<NodeData>(initialGraphData);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const messageFetcher = useFetcher();
   const currentAIMessageRef = useRef("");
+  const [graphData, setGraphData] = useState<NodeData[]>(initialGraphData);
+
+  // Update the updateGraphData function
+  const updateGraphData = (newGraphData: NodeData[]) => {
+    console.log("received new graphdata", newGraphData);
+    setGraphData(newGraphData);
+  };
 
   useEffect(() => {
     console.log("SharedStateProvider - Initial graphData:", graphData);
@@ -107,11 +113,6 @@ export const SharedStateProvider: React.FC<{
       { method: "post", action: "/chat/message" }
     );
     setIsProcessing(true);
-  };
-
-  const updateGraphData = (newGraphData: NodeData) => {
-    console.log("received new graphdata", newGraphData);
-    setGraphData(newGraphData);
   };
 
   return (

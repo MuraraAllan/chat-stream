@@ -9,7 +9,7 @@ export const action: ActionFunction = async ({ request }) => {
   const message = formData.get("message") as string;
   const graphState = JSON.parse(
     formData.get("graphState") as string
-  ) as NodeData;
+  ) as NodeData[];
 
   const userId = getUserId(request);
 
@@ -27,7 +27,7 @@ export const action: ActionFunction = async ({ request }) => {
     userId
   );
 
-  console.log(`AI response for user ${userId}:`, aiResponse);
+  // console.log(`AI response for user ${userId}:`, aiResponse);
 
   // Update the graph based on AI response
   eventListenerController.dispatchEvent(

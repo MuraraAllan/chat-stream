@@ -23,6 +23,12 @@ class EventListenerController {
           }
         });
 
+        request.signal.addEventListener("error", (err) => {
+          console.log(`Closing SSE connection for user ${err}`);
+          // unsubscribe();
+          controller.close();
+        });
+
         send(JSON.stringify({ type: "ping", data: "Connection established" }));
         const initialMessage = {
           type: "message",

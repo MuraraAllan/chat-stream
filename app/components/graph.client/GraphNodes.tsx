@@ -10,7 +10,7 @@ export const GraphNodes = () => {
     toggleSelectedNode: setSelectedNode,
     activeNodes,
   } = useGraphVisualization();
-  const color = d3.scaleOrdinal(d3.schemeSet3);
+  const color = d3.scaleOrdinal(d3.schemeCategory10); // Changed to a more distinct color scheme
 
   if (!nodes || nodes.length === 0) {
     console.log("GraphNodes - No nodes to render");
@@ -27,44 +27,45 @@ export const GraphNodes = () => {
 
   return (
     <g>
-      {nodes.map((node) => {
+      {nodes.map((node, index) => {
         const isActive = activeNodes.has(node.data.name);
-        const isMainNode = node.depth === 0;
+        const isMainNode = node.depth === 1;
         const nodeColor = isMainNode
           ? "url(#mainNodeGradient)"
           : color(node.depth.toString());
 
+        // Create a unique key using the node's name, position, and index
+        const nodeKey = `${node.data.name}-${node.x}-${node.y}-${index}`;
+
         return (
           <g
-            key={node.data.name}
+            key={nodeKey}
             transform={`translate(${node.x},${node.y})`}
             onClick={(event) => handleNodeClick(event, node)}
-            className={isActive ? styles["node-glow"] : ""}
+            className={`${isActive ? styles["node-glow"] : ""} ${
+              styles["node-3d"]
+            }`}
             style={{ cursor: "pointer" }}
           >
             <circle
               r={node.r}
               fill={nodeColor}
-              fillOpacity={isMainNode ? 0.5 : node.children ? 0.6 : 0.4}
+              fillOpacity={isMainNode ? 0.7 : node.children ? 0.6 : 0.4}
               stroke={
                 node.children ? d3.rgb(nodeColor).darker().toString() : "none"
               }
-              strokeWidth={2}
+              strokeWidth={3}
             />
             <text
               dy=".35em"
               textAnchor="middle"
-              fontSize={node.r > 20 ? "15px" : "10px"}
+              fontSize={node.r > 30 ? "18px" : node.r > 20 ? "14px" : "10px"}
               fontWeight={node.children ? "bold" : "normal"}
               fill={node.children ? "#fff" : "#000"}
-              opacity={node.r > 10 ? 1 : 0}
+              opacity={1} // Changed to always show text
               pointerEvents="none"
             >
-              {node.data.name.split(/\s+/).map((word, i) => (
-                <tspan key={i} x={0} dy={i ? "1.2em" : "-0.6em"}>
-                  {word}
-                </tspan>
-              ))}
+              {node.data.name}
             </text>
           </g>
         );

@@ -1,26 +1,83 @@
-import { portkey } from "~/utils/portkeyClient.server";
+import { portkeyEncode, portkeyDoorman } from "~/utils/portkeyClient.server";
 import { NodeData } from "~/types/graph";
 import { eventBus } from "./EventBus.server";
+import mergedGraph from "~/data/graph";
+import 'dotenv/config'
+
+const getAllChildrenNames = (node: NodeData): string[] => {
+  let childrenNames: string[] = [];
+  if (node.children) {
+    for (const child of node.children) {
+      childrenNames.push(child.name);
+      childrenNames = childrenNames.concat(getAllChildrenNames(child));
+    }
+  }
+  return childrenNames;
+};
 
 export class AIService {
-  async processMessage(message: string, graphData: NodeData, userId: string) {
-    try {
-      const systemPrompt =
-        process.env.AI_SYSTEM_PROMPT?.replace(
-          "{{GRAPH_DATA}}",
-          JSON.stringify(graphData, null, 2)
-        ) || "";
+  async processMessage(message: string, graphData: NodeData[], userId: string) {
+    // console.log("--- Processing message ---");
+    // console.log("Input message:", message);
+    // console.log("Input graphData:");
 
-      const response = await portkey.chat.completions.create({
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: message },
-        ],
-        stream: true,
+    const systemPrompt = process.env.DOORMAN_SYSTEM_PROMPT;
+
+    let pendingMessages = [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: message },
+    ];
+    // console.log("sending ppendg", pendingMessages);
+    const responseDoorman = await portkeyDoorman.chat.completions.create({
+      messages: [...pendingMessages],
+      stream: false,
+    });
+
+    let textDoormanResponse = responseDoorman.choices[0].message?.content;
+    console.log("answer doorman is", textDoormanResponse);
+    if (textDoormanResponse.includes("not sure")) {
+      eventBus.publish({
+        type: "message",
+        data: {
+          message:
+            "Invalid request, make sure it is related to Allan, projects, or this system",
+          isAI: true,
+          isPartial: false,
+        },
+        userId,
       });
 
+      console.log("--- Message processing completed ---");
+
+      return {
+        graphState: graphData,
+        aiResponse:
+          "Invalid request, make sure it is related to Allan, projects, or this system.",
+      };
+    }
+
+    try {
+      const systemPrompt2 =
+        process.env.AI_SYSTEM_PROMPT2?.replace(
+          "{{GRAPH_DATA}}",
+          JSON.stringify(mergedGraph, null, 2)
+        ) || "";
+
+      const response = await portkeyEncode.chat.completions.create(
+        {
+          messages: [
+            { role: "system", content: systemPrompt2 },
+            { role: "user", content: textDoormanResponse },
+          ],
+          stream: true,
+        },
+        {
+          cacheForceRefresh: true,
+        }
+      );
+
       let accumulatedResponse = "";
-      let activeNodes: string[] = [];
+      let activeNodesFromAI: string[] = [];
 
       for await (const chunk of response) {
         if (chunk.choices[0]?.delta?.content) {
@@ -39,36 +96,42 @@ export class AIService {
         }
       }
 
-      // Extract active nodes from the response
-      const activeNodesMatch = accumulatedResponse.match(
-        /ACTIVE_NODES:\s*(\[.*?\])/
-      );
-      if (activeNodesMatch) {
-        try {
-          activeNodes = JSON.parse(activeNodesMatch[1]);
-        } catch (error) {
-          console.error("Error parsing active nodes:", error);
-        }
-      }
+      console.log("Accumulated response:", accumulatedResponse);
 
-      // Function to recursively get all children names
-      const getAllChildrenNames = (node: NodeData): string[] => {
-        let childrenNames: string[] = [];
-        if (node.children) {
-          for (const child of node.children) {
-            childrenNames.push(child.name);
-            childrenNames = childrenNames.concat(getAllChildrenNames(child));
-          }
+      const convertToValidJSON = (str) => {
+        // Replace single quotes with double quotes for property names
+        let converted = str.replace(/'([^']+)':/g, '"$1":');
+
+        // Find the template literal and replace it with a valid JSON string
+        const templateLiteralMatch = converted.match(/`([\s\S]*)`/);
+        if (templateLiteralMatch) {
+          const templateLiteralContent = templateLiteralMatch[1];
+          const jsonEscapedContent = JSON.stringify(templateLiteralContent);
+          converted = converted.replace(/`[\s\S]*`/, jsonEscapedContent);
         }
-        return childrenNames;
+        if (converted.trim().endsWith("}") == false) {
+          converted += "}";
+        }
+        return converted;
       };
 
+      // Convert the response to valid JSON and parse it
+      const validJSONString = convertToValidJSON(
+        accumulatedResponse.replace(/```json|```/g, "")
+      );
+      const jsonResult = JSON.parse(validJSONString); // const result = accumulatedResponse.replace(/```|```/g, "");
+      // const jsonResult = JSON.parse(accumulatedResponse);
+      console.log("RESULT IS >>>>", jsonResult);
+
+      // Remove the ACTIVE_NODES part from the response
+      // const cleanedResponse = accumulatedResponse
+      //   .replace(/ACTIVE_NODES:\s*\[.*?\]/, "")
+      //   .trim();
+
       // Expand active nodes to include their children
-      let expandedActiveNodes = [...activeNodes];
-      for (const nodeName of activeNodes) {
-        const node = graphData.children?.find(
-          (child) => child.name === nodeName
-        );
+      let expandedActiveNodes = jsonResult.ACTIVE_NODES;
+      for (const nodeName of jsonResult.ACTIVE_NODES) {
+        const node = graphData.find((n) => n.name === nodeName);
         if (node) {
           expandedActiveNodes = expandedActiveNodes.concat(
             getAllChildrenNames(node)
@@ -80,23 +143,23 @@ export class AIService {
       expandedActiveNodes = Array.from(new Set(expandedActiveNodes));
 
       // Update graphData with expanded active nodes
-      const updatedGraphData = {
-        ...graphData,
-        activeNodes: expandedActiveNodes,
-      };
+      const updatedGraphData = graphData.map((node) => ({
+        ...node,
+        activeNodes: expandedActiveNodes.includes(node.name)
+          ? expandedActiveNodes
+          : undefined,
+      }));
 
-      // Publish the complete response
       eventBus.publish({
         type: "message",
         data: {
-          message: accumulatedResponse,
+          message: jsonResult.AIassistant_answer,
           isAI: true,
           isPartial: false,
         },
         userId,
       });
 
-      // Publish the updated graph data
       eventBus.publish({
         type: "updateGraph",
         data: {
@@ -105,7 +168,12 @@ export class AIService {
         userId,
       });
 
-      return { graphState: updatedGraphData, aiResponse: accumulatedResponse };
+      console.log("--- Message processing completed ---");
+
+      return {
+        graphState: updatedGraphData,
+        aiResponse: jsonResult.AIassistant_answer,
+      };
     } catch (error) {
       console.error("Error processing message with AI:", error);
       eventBus.publish({
