@@ -1,7 +1,7 @@
 import type { MetaFunction } from "@remix-run/node";
 import ChatScreen from "~/components/ChatScreen";
 import GraphVisualization from "~/components/GraphVisualization";
-import { SharedStateProvider } from "~/context/SharedStateContext";
+import { SharedStateProvider } from "~/context/SharedStateContextServerless";
 import { NodeData } from "~/types/graph";
 import mergedGraph from "~/data/graph";
 
@@ -54,7 +54,7 @@ function convertGraph(inputGraph) {
 
 const initialGraphData: NodeData = convertGraph(mergedGraph);
 
-console.log("merged graph is", initialGraphData);
+// console.log("merged graph is", initialGraphData);
 export default function Index() {
   return (
     <SharedStateProvider initialGraphData={initialGraphData}>

@@ -36,7 +36,7 @@ export default function GraphVisualization() {
       );
 
       // Apply a zoom factor to focus more on the center
-      const zoomFactor = 1.5; // Adjust this value to zoom in more or less
+      const zoomFactor = 2.5; // Adjust this value to zoom in more or less
       const scale = baseScale * zoomFactor;
 
       // Calculate the transform to center the graph and apply zoom
