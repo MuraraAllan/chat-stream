@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useMemo, useCallback } from "react";
 import * as d3 from "d3";
 import { NodeData } from "~/types/graph";
-import { useSharedState } from "~/context/SharedStateContext";
+import { useSharedState } from "~/context/SharedStateContextServerless";
 
 export function useGraphVisualization() {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -40,7 +40,6 @@ export function useGraphVisualization() {
 
     const packedNodes = pack(root).descendants().slice(1);
 
-    // Distribute child nodes more evenly within main nodes
     const distributeChildNodes = (node) => {
       if (node.children && node.children.length > 1) {
         const childCount = node.children.length;
@@ -51,18 +50,15 @@ export function useGraphVisualization() {
           const row = Math.floor(index / gridSize);
           const col = index % gridSize;
 
-          // Calculate base position
           const baseX = node.x - node.r + (col + 0.5) * cellSize;
           const baseY = node.y - node.r + (row + 0.5) * cellSize;
 
-          // Add some randomness
           const randomOffsetX = (Math.random() - 0.5) * cellSize * 0.5;
           const randomOffsetY = (Math.random() - 0.5) * cellSize * 0.5;
 
           child.x = baseX + randomOffsetX;
           child.y = baseY + randomOffsetY;
 
-          // Ensure the child node doesn't exceed the parent's boundaries
           const distance = Math.sqrt(
             Math.pow(child.x - node.x, 2) + Math.pow(child.y - node.y, 2)
           );
@@ -75,7 +71,6 @@ export function useGraphVisualization() {
       }
     };
 
-    // Apply distribution only to main nodes (depth 1)
     packedNodes.forEach((node) => {
       if (node.depth === 1) {
         distributeChildNodes(node);
@@ -100,21 +95,15 @@ export function useGraphVisualization() {
   const toggleSelectedNode = useCallback(
     (node: d3.HierarchyNode<NodeData> | null) => {
       if (node && Array.isArray(graphData)) {
-        const updatedGraphData = graphData.map((n) => {
-          if (n.name === node.data.name) {
-            const isNodeAlreadySelected = n.activeNodes?.includes(
-              node.data.name
-            );
-            const updatedActiveNodes = isNodeAlreadySelected
-              ? (n.activeNodes || []).filter((name) => name !== node.data.name)
-              : [...new Set([...(n.activeNodes || []), node.data.name])];
+        const currentNodeData = graphData.find(
+          (n) => n.name === node.data.name
+        );
+        const updatedActiveNodes = currentNodeData?.activeNodes || [];
+        const newActiveNodes = updatedActiveNodes.includes(node.data.name)
+          ? updatedActiveNodes.filter((name) => name !== node.data.name)
+          : [...updatedActiveNodes, node.data.name];
 
-            return { ...n, activeNodes: updatedActiveNodes };
-          }
-          return n;
-        });
-
-        updateGraphData(updatedGraphData);
+        updateGraphData(newActiveNodes);
       }
     },
     [graphData, updateGraphData]
