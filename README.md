@@ -1,3 +1,13 @@
+# Representation of the hosted website https://allanmurara.netlify.app
+
+### Technologies 
+React-Remix
+Portkey LLM Gateway
+
+
+WIP / TO UPDATE
+
+
 # Welcome to Remix!
 
 - 📖 [Remix docs](https://remix.run/docs)
