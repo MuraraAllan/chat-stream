@@ -86,7 +86,6 @@ export const SharedStateProvider: React.FC<{
             }
           }
         } else if (data.type === "updateGraph") {
-          console.log("HEY THERE", data.data.newGraphData);
           setGraphData(data.data.newGraphData);
         }
       } catch (error) {

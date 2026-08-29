@@ -2,7 +2,18 @@ import React, { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { tomorrow } from "react-syntax-highlighter/dist/cjs/styles/prism";
-import { useSharedState } from "../context/SharedStateContext";
+import { useSharedState } from "../context/SharedStateContextServerless";
+
+const HighlightedLink = ({ href, children }) => (
+  <a
+    href={href}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="text-blue-600 hover:text-blue-800 underline"
+  >
+    {children}
+  </a>
+);
 
 export default function ChatScreen() {
   const { messages, isProcessing, sendMessage } = useSharedState();
@@ -37,6 +48,9 @@ export default function ChatScreen() {
       <ol className="list-decimal pl-5 mb-4">{children}</ol>
     ),
     li: ({ children }) => <li className="mb-2">{children}</li>,
+    a: ({ href, children }) => (
+      <HighlightedLink href={href}>{children}</HighlightedLink>
+    ),
     code: ({ node, inline, className, children, ...props }) => {
       const match = /language-(\w+)/.exec(className || "");
       return !inline && match ? (
